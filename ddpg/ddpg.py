@@ -16,7 +16,7 @@ from gym import wrappers
 import tflearn
 import argparse
 import pprint as pp
-
+import PathFollowingEnv
 from replay_buffer import ReplayBuffer
 
 # ===========================
@@ -74,12 +74,12 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 400, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 300)
+        # net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(net, 300, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activations.relu(net)
+        # net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
@@ -338,7 +338,8 @@ def main(args):
 
     with tf.Session() as sess:
 
-        env = gym.make(args['env'])
+        # env = gym.make(args['env'])
+        env = PathFollowingEnv
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -369,7 +370,8 @@ def main(args):
         train(sess, env, args, actor, critic, actor_noise)
 
         if args['use_gym_monitor']:
-            env.monitor.close()
+            env.close()
+            # env.monitor.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
@@ -393,8 +395,12 @@ if __name__ == '__main__':
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
 
     parser.set_defaults(render_env=False)
+    # parser.set_defaults(render_env=True)
     parser.set_defaults(use_gym_monitor=True)
-    
+    parser.set_defaults(max_episodes=200)
+    parser.set_defaults(env='PathFollowing-v0')
+    # parser.set_defaults(use_gym_monitor=False)
+
     args = vars(parser.parse_args())
     
     pp.pprint(args)
