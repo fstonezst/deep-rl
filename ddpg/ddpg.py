@@ -16,7 +16,7 @@ from gym import wrappers
 import tflearn
 import argparse
 import pprint as pp
-import PathFollowingEnv
+from pathfollowing_env import PathFollowing
 from replay_buffer import ReplayBuffer
 
 # ===========================
@@ -336,15 +336,17 @@ def train(sess, env, args, actor, critic, actor_noise):
 
 def main(args):
 
+    a = PathFollowing()
     with tf.Session() as sess:
 
         # env = gym.make(args['env'])
-        env = PathFollowingEnv
+        env = PathFollowing()
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = env.observation_space.shape[0]
+        state_dim = 3#env.observation_space.shape[0]
+        # state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
         # Ensure action bound is symmetric
@@ -398,7 +400,7 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
     parser.set_defaults(use_gym_monitor=True)
     parser.set_defaults(max_episodes=200)
-    parser.set_defaults(env='PathFollowing-v0')
+    # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 
     args = vars(parser.parse_args())
@@ -406,3 +408,4 @@ if __name__ == '__main__':
     pp.pprint(args)
 
     main(args)
+
