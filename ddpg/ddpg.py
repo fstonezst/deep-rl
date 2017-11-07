@@ -278,7 +278,11 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            noise = actor_noise() / 10
+            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
+            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            # a = actor.predict(np.reshape(s, (1, actor.s_dim)))# + actor_noise()
+            # print "noise:"+ str(noise), "a:"+str(a)
 
             s2, r, terminal, info = env.step(a[0])
 
@@ -323,7 +327,8 @@ def train(sess, env, args, actor, critic, actor_noise):
             if terminal:
 
                 summary_str = sess.run(summary_ops, feed_dict={
-                    summary_vars[0]: ep_reward,
+                    # summary_vars[0]: ep_reward ,
+                    summary_vars[0]: ep_reward / float(j),
                     summary_vars[1]: ep_ave_max_q / float(j)
                 })
 
@@ -396,10 +401,11 @@ if __name__ == '__main__':
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
 
-    parser.set_defaults(render_env=False)
-    # parser.set_defaults(render_env=True)
+    # parser.set_defaults(render_env=False)
+    parser.set_defaults(render_env=True)
+
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=200)
+    parser.set_defaults(max_episodes=5000)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 
