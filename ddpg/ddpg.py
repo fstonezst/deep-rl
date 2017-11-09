@@ -264,24 +264,27 @@ def train(sess, env, args, actor, critic, actor_noise):
     # Initialize replay memory
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
+    totalTime = 0
+
     for i in range(int(args['max_episodes'])):
+    # for i in range(400):
 
         s = env.reset()
 
         ep_reward = 0
         ep_ave_max_q = 0
 
-        for j in range(int(args['max_episode_len'])):
+        # for j in range(int(args['max_episode_len'])):
 
+        for j in range(4000):
             if args['render_env']:
                 env.render()
 
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
             noise = actor_noise() / 10
+            # noise = 0 #actor_noise() / 10
             a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim)))# + actor_noise()
             # print "noise:"+ str(noise), "a:"+str(a)
 
             s2, r, terminal, info = env.step(a[0])
@@ -325,7 +328,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             ep_reward += r
 
             if terminal:
-
+                import matplotlib.pyplot as plt
                 summary_str = sess.run(summary_ops, feed_dict={
                     # summary_vars[0]: ep_reward ,
                     summary_vars[0]: ep_reward / float(j),
@@ -335,8 +338,18 @@ def train(sess, env, args, actor, critic, actor_noise):
                 writer.add_summary(summary_str, i)
                 writer.flush()
 
-                print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
-                        i, (ep_ave_max_q / float(j))))
+                totalTime += j #info.get("times")
+
+                # if j > 900:
+                #     list = info.get("result")
+                #     fig = plt.figure()
+                #     ax1 = fig.add_subplot(1, 1, 1)
+                #     ax1.plot(list[0], 'g-', label='Route')
+                #     ax1.plot(list[1], 'o-',color='red', label='Move')
+                #     plt.show()
+
+                print('| Reward: {:d} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward), \
+                        i, totalTime, (ep_ave_max_q / float(j))))
                 break
 
 def main(args):
@@ -401,11 +414,13 @@ if __name__ == '__main__':
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
 
-    # parser.set_defaults(render_env=False)
-    parser.set_defaults(render_env=True)
+    parser.set_defaults(render_env=False)
+    # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
     parser.set_defaults(max_episodes=5000)
+    parser.set_defaults(max_episodes_len=400)
+    parser.set_defaults(minibatch_size=64)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 
