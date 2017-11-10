@@ -74,6 +74,7 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
+        # net = tflearn.fully_connected(inputs, 400, activation='relu',regularizer='L2')
         net = tflearn.fully_connected(inputs, 400, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         # net = tflearn.activations.relu(net)
@@ -161,12 +162,14 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
+        # net = tflearn.fully_connected(inputs, 400, regularizer='L2')
         net = tflearn.fully_connected(inputs, 400)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
+        # t1 = tflearn.fully_connected(net, 300,regularizer='L2')
         t1 = tflearn.fully_connected(net, 300)
         t2 = tflearn.fully_connected(action, 300)
 
@@ -176,6 +179,7 @@ class CriticNetwork(object):
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
+        # out = tflearn.fully_connected(net, 1, weights_init=w_init, regularizer='L2')
         out = tflearn.fully_connected(net, 1, weights_init=w_init)
         return inputs, action, out
 
@@ -267,7 +271,6 @@ def train(sess, env, args, actor, critic, actor_noise):
     totalTime = 0
 
     for i in range(int(args['max_episodes'])):
-    # for i in range(400):
 
         s = env.reset()
 
@@ -282,9 +285,19 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
+
             noise = actor_noise() / 10
-            # noise = 0 #actor_noise() / 10
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
+            # noise = actor_noise()
+
+            if i > 40:
+                noise = noise / 10
+
+            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
+            dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            # while noise / dirOut[0] > 0.2:
+            #     noise /= 10
+            a = dirOut + noise
+
             # print "noise:"+ str(noise), "a:"+str(a)
 
             s2, r, terminal, info = env.step(a[0])
@@ -340,13 +353,14 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 totalTime += j #info.get("times")
 
-                # if j > 900:
-                #     list = info.get("result")
-                #     fig = plt.figure()
-                #     ax1 = fig.add_subplot(1, 1, 1)
-                #     ax1.plot(list[0], 'g-', label='Route')
-                #     ax1.plot(list[1], 'o-',color='red', label='Move')
-                #     plt.show()
+                # if j > 750 and i % 5 == 0:
+                if totalTime > 10000:
+                    list = info.get("result")
+                    fig = plt.figure()
+                    ax1 = fig.add_subplot(1, 1, 1)
+                    ax1.plot(list[0], 'g-', label='Route')
+                    ax1.plot(list[1], 'o-',color='red', label='Move')
+                    plt.show()
 
                 print('| Reward: {:d} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward), \
                         i, totalTime, (ep_ave_max_q / float(j))))
@@ -363,7 +377,7 @@ def main(args):
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = 3#env.observation_space.shape[0]
+        state_dim = 3 #env.observation_space.shape[0]
         # state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
