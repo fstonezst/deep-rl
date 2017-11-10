@@ -1,3 +1,7 @@
+.idea/
+*.pyc
+ddpg/results/
+
 # Compiled Lua sources
 luac.out
 

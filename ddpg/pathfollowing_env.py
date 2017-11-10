@@ -17,6 +17,19 @@ class PathFollowing(gym.Env):
         self.time = 0
         self.error_sum = 0
         self.record_buffer = [0]
+
+        self.error_abs_sum = 0
+        self.action_sum = 0
+        self.action_buffer = []
+
+        self.error_max_queue = []
+        self.error_min_queue = []
+        self.action_max_queue = []
+        self.action_min_queue = []
+
+
+
+
         self.lastAction = 0
 
         self.buffer_size = 10
@@ -71,11 +84,22 @@ class PathFollowing(gym.Env):
         self.totalError += abs(error)
         self.record_buffer.append(error)
         self.error_sum += error
+        self.error_abs_sum += abs(error)
 
         if len(self.record_buffer) > self.buffer_size:
             old = self.record_buffer.pop(0)
             self.error_sum -= old
+            self.error_abs_sum -= abs(old)
         error_i = self.error_sum/len(self.record_buffer)
+
+        # error_avg = self.error_abs_sum/float(len(self.record_buffer))
+
+        # self.action_buffer.append(abs(actionDiff))
+        # self.action_sum += abs(actionDiff)
+        # if self.time > self.buffer_size:
+        #     self.action_sum -= self.action_buffer.pop(0)
+        # action_diff_avg = self.action_sum / float(len(self.action_buffer))
+
 
         if len(self.record_buffer) > 1:
             error_d = self.record_buffer[-1] - self.record_buffer[-2]
@@ -83,17 +107,21 @@ class PathFollowing(gym.Env):
             error_d = self.record_buffer[-1]
         self.state = np.array([error, error_i, error_d])
         # reward = abs(error) * 1 + abs(error_d) * 0.1 + abs(error_i) * 0.01
-        ratio = 0.8
+        ratio = 0.9
         # reward = abs(error) * 1 + abs(actionDiff) * 0.2
+        # reward = abs(abs(error)-error_avg) * ratio + abs(abs(actionDiff) - action_diff_avg) * (1-ratio)
         reward = abs(error) * ratio + abs(actionDiff) * (1-ratio)
-        done = True if self.time > self.max_time or abs(error) > 2 else False
+
+        done = True if self.time > self.max_time or abs(error) > 1 else False
         # done = True if self.time > self.max_time else False
-        # return np.array(self.state), 1/(reward+0.001), done, {}
+
         if done:
             print(self.totalError/self.time)
+        # return np.array(self.state), 1/(reward+0.001), done, {}
         return np.array(self.state), -reward, done, {"result":[self.pathStore,self.moveStore],"times":self.time}
 
     def _reset(self):
+        self.action_sum = 0
         self.lastAction = 0
         self.totalError = 0
         self.pathStore = []
