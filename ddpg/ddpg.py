@@ -9,6 +9,7 @@ and developed with tflearn + Tensorflow
 
 Author: Patrick Emami
 """
+# -- coding: utf-8 --
 import tensorflow as tf
 import numpy as np
 import gym
@@ -18,7 +19,8 @@ import argparse
 import pprint as pp
 from pathfollowing_env import PathFollowing
 from replay_buffer import ReplayBuffer
-
+import os
+import random
 # ===========================
 #   Actor and Critic DNNs
 # ===========================
@@ -76,15 +78,19 @@ class ActorNetwork(object):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         # net = tflearn.fully_connected(inputs, 400, activation='relu',regularizer='L2')
         net = tflearn.fully_connected(inputs, 400, activation='relu')
-        net = tflearn.dropout(net,0.5)
+        # net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800, activation='relu')
+
         net = tflearn.layers.normalization.batch_normalization(net)
-        # net = tflearn.activations.relu(net)
+
+
         net = tflearn.fully_connected(net, 300, activation='relu')
-        net = tflearn.dropout(net,0.5)
+        # net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(net, 600, activation='relu')
+
         net = tflearn.layers.normalization.batch_normalization(net)
-        # net = tflearn.activations.relu(net)
+
+
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
@@ -168,7 +174,7 @@ class CriticNetwork(object):
         action = tflearn.input_data(shape=[None, self.a_dim])
         # net = tflearn.fully_connected(inputs, 400, regularizer='L2')
         net = tflearn.fully_connected(inputs, 400)
-        net = tflearn.dropout(net,0.5)
+        # net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
@@ -279,8 +285,10 @@ def train(sess, env, args, actor, critic, actor_noise):
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
     totalTime = 0
-
     for i in range(int(args['max_episodes'])):
+        if totalTime > 20000:
+            break
+
 
         s = env.reset()
 
@@ -297,11 +305,12 @@ def train(sess, env, args, actor, critic, actor_noise):
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
 
+            # noise = actor_noise() / 2
             # if i < 40:
             #     noise = actor_noise() / 10
             # else:
             noise = 0
-            # noise = actor_noise()
+            #     noise = actor_noise()
 
             # if i > 40:
             #     noise = noise / 10
@@ -362,7 +371,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             ep_reward += r
 
             if terminal:
-                import matplotlib.pyplot as plt
+                # import matplotlib.pyplot as plt
                 print("ave_diff:"+str(ave_diff))
                 summary_str = sess.run(summary_ops, feed_dict={
                     # summary_vars[0]: ep_reward ,
@@ -384,12 +393,15 @@ def train(sess, env, args, actor, critic, actor_noise):
                 #     ax1.plot(list[1], 'o-',color='red', label='Move')
                 #     plt.show()
 
-                print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward)/float(j), \
+                if j > 0:
+                    print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward)/float(j), \
                         i, totalTime, (ep_ave_max_q /float(j))))
                 break
 
 def main(args):
 
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"#str(random.randint(0, 1)) #"1"
     a = PathFollowing()
     with tf.Session() as sess:
 
@@ -399,7 +411,7 @@ def main(args):
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = 3 #env.observation_space.shape[0]
+        state_dim = 6 #env.observation_space.shape[0]
         # state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
@@ -454,9 +466,10 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=5000)
+    parser.set_defaults(max_episodes=1000)
     parser.set_defaults(max_episodes_len=400)
     parser.set_defaults(minibatch_size=64)
+    # parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 
