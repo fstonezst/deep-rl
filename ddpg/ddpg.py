@@ -76,9 +76,13 @@ class ActorNetwork(object):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         # net = tflearn.fully_connected(inputs, 400, activation='relu',regularizer='L2')
         net = tflearn.fully_connected(inputs, 400, activation='relu')
+        net = tflearn.dropout(net,0.5)
+        # net = tflearn.fully_connected(inputs, 800, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         # net = tflearn.activations.relu(net)
         net = tflearn.fully_connected(net, 300, activation='relu')
+        net = tflearn.dropout(net,0.5)
+        # net = tflearn.fully_connected(net, 600, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         # net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
@@ -164,6 +168,8 @@ class CriticNetwork(object):
         action = tflearn.input_data(shape=[None, self.a_dim])
         # net = tflearn.fully_connected(inputs, 400, regularizer='L2')
         net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.dropout(net,0.5)
+        # net = tflearn.fully_connected(inputs, 800)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
@@ -171,7 +177,11 @@ class CriticNetwork(object):
         # Use two temp layers to get the corresponding weights and biases
         # t1 = tflearn.fully_connected(net, 300,regularizer='L2')
         t1 = tflearn.fully_connected(net, 300)
+        # t1 = tflearn.dropout(t1,0.5)
         t2 = tflearn.fully_connected(action, 300)
+        # t2 = tflearn.dropout(t2,0.5)
+        # t1 = tflearn.fully_connected(net, 600)
+        # t2 = tflearn.fully_connected(action, 600)
 
         net = tflearn.activation(
             tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
@@ -276,6 +286,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
         ep_reward = 0
         ep_ave_max_q = 0
+        ave_diff = 0
 
         # for j in range(int(args['max_episode_len'])):
 
@@ -286,11 +297,14 @@ def train(sess, env, args, actor, critic, actor_noise):
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
 
-            noise = actor_noise() / 10
+            # if i < 40:
+            #     noise = actor_noise() / 10
+            # else:
+            noise = 0
             # noise = actor_noise()
 
-            if i > 40:
-                noise = noise / 10
+            # if i > 40:
+            #     noise = noise / 10
 
             # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
@@ -322,9 +336,16 @@ def train(sess, env, args, actor, critic, actor_noise):
                     else:
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
 
+                y_label = np.reshape(y_i, (int(args['minibatch_size']),1))
+
                 # Update the critic given the targets
                 predicted_q_value, _ = critic.train(
                     s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+
+                diff = y_label - predicted_q_value
+                diff = abs(diff)
+                ave_diff = sum(diff)/float(len(diff))
+
 
                 ep_ave_max_q += np.amax(predicted_q_value)
 
@@ -342,6 +363,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             if terminal:
                 import matplotlib.pyplot as plt
+                print("ave_diff:"+str(ave_diff))
                 summary_str = sess.run(summary_ops, feed_dict={
                     # summary_vars[0]: ep_reward ,
                     summary_vars[0]: ep_reward / float(j),
@@ -354,16 +376,16 @@ def train(sess, env, args, actor, critic, actor_noise):
                 totalTime += j #info.get("times")
 
                 # if j > 750 and i % 5 == 0:
-                if totalTime > 10000:
-                    list = info.get("result")
-                    fig = plt.figure()
-                    ax1 = fig.add_subplot(1, 1, 1)
-                    ax1.plot(list[0], 'g-', label='Route')
-                    ax1.plot(list[1], 'o-',color='red', label='Move')
-                    plt.show()
+                # if totalTime > 10000:
+                #     list = info.get("result")
+                #     fig = plt.figure()
+                #     ax1 = fig.add_subplot(1, 1, 1)
+                #     ax1.plot(list[0], 'g-', label='Route')
+                #     ax1.plot(list[1], 'o-',color='red', label='Move')
+                #     plt.show()
 
-                print('| Reward: {:d} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward), \
-                        i, totalTime, (ep_ave_max_q / float(j))))
+                print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward)/float(j), \
+                        i, totalTime, (ep_ave_max_q /float(j))))
                 break
 
 def main(args):
