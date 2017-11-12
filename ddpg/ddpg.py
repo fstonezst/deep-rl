@@ -285,8 +285,9 @@ def train(sess, env, args, actor, critic, actor_noise):
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
     totalTime = 0
+    ave_error = 0
     for i in range(int(args['max_episodes'])):
-        if totalTime > 20000:
+        if totalTime > 40000:
             break
 
 
@@ -295,6 +296,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         ep_reward = 0
         ep_ave_max_q = 0
         ave_diff = 0
+        total_noise = 0.0
 
         # for j in range(int(args['max_episode_len'])):
 
@@ -309,7 +311,6 @@ def train(sess, env, args, actor, critic, actor_noise):
             # if i < 40:
             #     noise = actor_noise() / 10
             # else:
-            noise = 0
             #     noise = actor_noise()
 
             # if i > 40:
@@ -319,6 +320,13 @@ def train(sess, env, args, actor, critic, actor_noise):
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
             # while noise / dirOut[0] > 0.2:
             #     noise /= 10
+            noise = actor_noise()
+            if abs(ave_error) < 0.0001:
+                noise = 0
+            else:
+                while abs(noise) > abs(ave_error / 2.0):
+                    noise /= 2.0
+            total_noise += noise
             a = dirOut + noise
 
             # print "noise:"+ str(noise), "a:"+str(a)
@@ -394,15 +402,16 @@ def train(sess, env, args, actor, critic, actor_noise):
                 #     plt.show()
 
                 if j > 0:
-                    print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f}'.format(int(ep_reward)/float(j), \
-                        i, totalTime, (ep_ave_max_q /float(j))))
+                    ave_error = info.get("avgError")[0]
+                    print (total_noise/float(j))
+                    print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f}'.format(int(ep_reward)/float(j), \
+                    i, totalTime, (ep_ave_max_q /float(j)),  ave_error))
                 break
 
 def main(args):
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"#str(random.randint(0, 1)) #"1"
-    a = PathFollowing()
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"#str(random.randint(0, 1))
     with tf.Session() as sess:
 
         # env = gym.make(args['env'])

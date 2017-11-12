@@ -111,8 +111,10 @@ class PathFollowing(gym.Env):
         done = True if self.time > self.max_time or abs(error) > 1 else False
 
         if done:
-            print(self.totalError/self.time)
-        return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore], "times": self.time}
+            # print(self.totalError/self.time)
+            return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore], \
+                                                     "avgError": [self.totalError/float(self.time)]}
+        return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore]}
 
 
 
