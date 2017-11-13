@@ -21,6 +21,8 @@ from pathfollowing_env import PathFollowing
 from replay_buffer import ReplayBuffer
 import os
 import random
+
+
 # ===========================
 #   Actor and Critic DNNs
 # ===========================
@@ -51,14 +53,14 @@ class ActorNetwork(object):
         self.target_inputs, self.target_out, self.target_scaled_out = self.create_actor_network()
 
         self.target_network_params = tf.trainable_variables()[
-            len(self.network_params):]
+                                     len(self.network_params):]
 
         # Op for periodically updating target network with online network
         # weights
         self.update_target_network_params = \
             [self.target_network_params[i].assign(tf.multiply(self.network_params[i], self.tau) +
                                                   tf.multiply(self.target_network_params[i], 1. - self.tau))
-                for i in range(len(self.target_network_params))]
+             for i in range(len(self.target_network_params))]
 
         # This gradient will be provided by the critic network
         self.action_gradient = tf.placeholder(tf.float32, [None, self.a_dim])
@@ -68,7 +70,7 @@ class ActorNetwork(object):
             self.scaled_out, self.network_params, -self.action_gradient)
 
         # Optimization Op
-        self.optimize = tf.train.AdamOptimizer(self.learning_rate).\
+        self.optimize = tf.train.AdamOptimizer(self.learning_rate). \
             apply_gradients(zip(self.actor_gradients, self.network_params))
 
         self.num_trainable_vars = len(
@@ -77,21 +79,19 @@ class ActorNetwork(object):
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         # net = tflearn.fully_connected(inputs, 400, activation='relu',regularizer='L2')
-        # net = tflearn.fully_connected(inputs, 400, activation='relu')
-        net = tflearn.fully_connected(inputs, 50, activation='relu')
+        net = tflearn.fully_connected(inputs, 400, activation='relu')
+        # net = tflearn.fully_connected(inputs, 50, activation='relu')
         net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800, activation='relu')
 
         net = tflearn.layers.normalization.batch_normalization(net)
 
-
-        # net = tflearn.fully_connected(net, 300, activation='relu')
-        net = tflearn.fully_connected(net, 30, activation='relu')
+        net = tflearn.fully_connected(net, 300, activation='relu')
+        # net = tflearn.fully_connected(net, 30, activation='relu')
         net = tflearn.dropout(net, 0.5)
-        # net = tflearn.fully_connected(net, 600, activation='relu')
+        net = tflearn.fully_connected(net, 600, activation='relu')
 
         net = tflearn.layers.normalization.batch_normalization(net)
-
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
@@ -153,16 +153,18 @@ class CriticNetwork(object):
         # weights with regularization
         self.update_target_network_params = \
             [self.target_network_params[i].assign(tf.multiply(self.network_params[i], self.tau) \
-            + tf.multiply(self.target_network_params[i], 1. - self.tau))
-                for i in range(len(self.target_network_params))]
+                                                  + tf.multiply(self.target_network_params[i], 1. - self.tau))
+             for i in range(len(self.target_network_params))]
 
         # Network target (y_i)
         self.predicted_q_value = tf.placeholder(tf.float32, [None, 1])
 
+        # with tf.name_scope('loss'):
         # Define loss and optimization Op
         self.loss = tflearn.mean_square(self.predicted_q_value, self.out)
         self.optimize = tf.train.AdamOptimizer(
             self.learning_rate).minimize(self.loss)
+        # self.loss_summary = tf.summary.scalar('loss', self.loss)
 
         # Get the gradient of the net w.r.t. the action.
         # For each action in the minibatch (i.e., for each x in xs),
@@ -174,8 +176,8 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        # net = tflearn.fully_connected(inputs, 400)
-        net = tflearn.fully_connected(inputs, 50)
+        net = tflearn.fully_connected(inputs, 400)
+        # net = tflearn.fully_connected(inputs, 50)
         net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800)
         net = tflearn.layers.normalization.batch_normalization(net)
@@ -183,11 +185,11 @@ class CriticNetwork(object):
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        # t1 = tflearn.fully_connected(net, 300)
-        t1 = tflearn.fully_connected(net, 30)
+        t1 = tflearn.fully_connected(net, 300)
+        # t1 = tflearn.fully_connected(net, 30)
         # t1 = tflearn.dropout(t1,0.5)
-        # t2 = tflearn.fully_connected(action, 300)
-        t2 = tflearn.fully_connected(action, 30)
+        t2 = tflearn.fully_connected(action, 300)
+        # t2 = tflearn.fully_connected(action, 30)
         # t2 = tflearn.dropout(t2,0.5)
         # t1 = tflearn.fully_connected(net, 600)
         # t2 = tflearn.fully_connected(action, 600)
@@ -202,11 +204,24 @@ class CriticNetwork(object):
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):
+        # return self.sess.run([self.loss_summary, self.out, self.optimize], feed_dict={
         return self.sess.run([self.out, self.optimize], feed_dict={
             self.inputs: inputs,
             self.action: action,
             self.predicted_q_value: predicted_q_value
         })
+
+    def getOut(self, inputs, action):
+        return self.sess.run([self.out], feed_dict={
+            self.inputs: inputs,
+            self.action: action
+        })
+
+    # def getLoss(self, out, predicted_q_value):
+    #     return self.sess.run([self.loss], feed_dict={
+    #         self.out:out
+    #
+    #     })
 
     def predict(self, inputs, action):
         return self.sess.run(self.out, feed_dict={
@@ -229,6 +244,7 @@ class CriticNetwork(object):
     def update_target_network(self):
         self.sess.run(self.update_target_network_params)
 
+
 # Taken from https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py, which is
 # based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
 class OrnsteinUhlenbeckActionNoise:
@@ -242,7 +258,7 @@ class OrnsteinUhlenbeckActionNoise:
 
     def __call__(self):
         x = self.x_prev + self.theta * (self.mu - self.x_prev) * self.dt + \
-                self.sigma * np.sqrt(self.dt) * np.random.normal(size=self.mu.shape)
+            self.sigma * np.sqrt(self.dt) * np.random.normal(size=self.mu.shape)
         self.x_prev = x
         return x
 
@@ -251,6 +267,7 @@ class OrnsteinUhlenbeckActionNoise:
 
     def __repr__(self):
         return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
+
 
 # ===========================
 #   Tensorflow Summary Ops
@@ -261,18 +278,23 @@ def build_summaries():
     tf.summary.scalar("Reward", episode_reward)
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("Qmax Value", episode_ave_max_q)
+    train_loss = tf.Variable(0.)
+    tf.summary.scalar("train_loss", train_loss)
+    error = tf.Variable(0.)
+    tf.summary.scalar("error", error)
 
-    summary_vars = [episode_reward, episode_ave_max_q]
+    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error]
     summary_ops = tf.summary.merge_all()
+    # summary_ops = tf.summary.merge_all_summaries()
 
     return summary_ops, summary_vars
+
 
 # ===========================
 #   Agent Training
 # ===========================
 
 def train(sess, env, args, actor, critic, actor_noise):
-
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
 
@@ -292,12 +314,12 @@ def train(sess, env, args, actor, critic, actor_noise):
         if totalTime > 40000:
             break
 
-
         s = env.reset()
 
         ep_reward = 0
         ep_ave_max_q = 0
         ave_diff = 0
+        total_loss = 0
         total_noise = 0.0
 
         # for j in range(int(args['max_episode_len'])):
@@ -307,7 +329,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render()
 
             # Added exploration noise
-            #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
+            # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
 
             # noise = actor_noise() / 2
             # if i < 40:
@@ -357,18 +379,38 @@ def train(sess, env, args, actor, critic, actor_noise):
                     else:
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
 
-                y_label = np.reshape(y_i, (int(args['minibatch_size']),1))
+                y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
 
                 # Update the critic given the targets
+                # merged = tf.merge_all_summaries()
+
+                # loss = sess.run([critic.loss], feed_dict={
+                #     critic.predicted_q_value: np.reshape(y_i, (int(args['minibatch_size']), 1)),
+                #     critic.inputs: s_batch,
+                #     critic.action: a_batch
+                # })
+                #
+                # predicted_q_value = sess.run([critic.optimize], feed_dict={
+                #     critic.loss: loss
+                # })
+
                 predicted_q_value, _ = critic.train(
-                    s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                    # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                    s_batch, a_batch, y_label)
+
+                loss = sess.run([critic.loss], feed_dict={
+                    critic.inputs: s_batch,
+                    critic.action: a_batch,
+                    critic.predicted_q_value: y_label
+                })
+
 
                 diff = y_label - predicted_q_value
                 diff = abs(diff)
-                ave_diff = sum(diff)[0]/float(len(diff))
-
+                ave_diff = sum(diff)[0] / float(len(diff))
 
                 ep_ave_max_q += np.amax(predicted_q_value)
+                total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
                 a_outs = actor.predict(s_batch)
@@ -388,13 +430,16 @@ def train(sess, env, args, actor, critic, actor_noise):
                 summary_str = sess.run(summary_ops, feed_dict={
                     # summary_vars[0]: ep_reward ,
                     summary_vars[0]: ep_reward / float(j),
-                    summary_vars[1]: ep_ave_max_q / float(j)
+                    summary_vars[1]: ep_ave_max_q / float(j),
+                    summary_vars[2]: total_loss / float(j),
+                    summary_vars[3]: info.get("avgError")[0]
                 })
 
                 writer.add_summary(summary_str, i)
+
                 writer.flush()
 
-                totalTime += j #info.get("times")
+                totalTime += j  # info.get("times")
 
                 # if j > 750 and i % 5 == 0:
                 # if totalTime > 10000:
@@ -407,15 +452,18 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 if j > 0:
                     ave_error = info.get("avgError")[0]
-                    print (total_noise/float(j))
-                    print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f}'.format(int(ep_reward)/float(j), \
-                    i, totalTime, (ep_ave_max_q /float(j)),  ave_error, float(ave_diff)))
+                    print (total_noise / float(j))
+                    # print (total_loss/float(j))
+                    print(
+                    '| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f} | loss: {:.4f}'.format(
+                        int(ep_reward) / float(j), i, totalTime, (ep_ave_max_q / float(j)), ave_error, float(ave_diff), (total_loss / float(j))))
                 break
+    writer.close()
+
 
 def main(args):
-
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"#str(random.randint(0, 1))
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(random.randint(0, 1))
     with tf.Session() as sess:
 
         # env = gym.make(args['env'])
@@ -424,7 +472,7 @@ def main(args):
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = 6 #env.observation_space.shape[0]
+        state_dim = 6  # env.observation_space.shape[0]
         # state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
@@ -438,7 +486,7 @@ def main(args):
                                float(args['critic_lr']), float(args['tau']),
                                float(args['gamma']),
                                actor.get_num_trainable_vars())
-        
+
         actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
         if args['use_gym_monitor']:
@@ -453,6 +501,7 @@ def main(args):
         if args['use_gym_monitor']:
             env.close()
             # env.monitor.close()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
@@ -479,16 +528,15 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=1000)
+    parser.set_defaults(max_episodes=60)
     parser.set_defaults(max_episodes_len=400)
-    parser.set_defaults(minibatch_size=64)
-    # parser.set_defaults(minibatch_size=128)
+    # parser.set_defaults(minibatch_size=64)
+    parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 
     args = vars(parser.parse_args())
-    
+
     pp.pprint(args)
 
     main(args)
-
