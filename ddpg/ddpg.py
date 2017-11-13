@@ -77,15 +77,17 @@ class ActorNetwork(object):
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         # net = tflearn.fully_connected(inputs, 400, activation='relu',regularizer='L2')
-        net = tflearn.fully_connected(inputs, 400, activation='relu')
-        # net = tflearn.dropout(net, 0.5)
+        # net = tflearn.fully_connected(inputs, 400, activation='relu')
+        net = tflearn.fully_connected(inputs, 50, activation='relu')
+        net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800, activation='relu')
 
         net = tflearn.layers.normalization.batch_normalization(net)
 
 
-        net = tflearn.fully_connected(net, 300, activation='relu')
-        # net = tflearn.dropout(net, 0.5)
+        # net = tflearn.fully_connected(net, 300, activation='relu')
+        net = tflearn.fully_connected(net, 30, activation='relu')
+        net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(net, 600, activation='relu')
 
         net = tflearn.layers.normalization.batch_normalization(net)
@@ -172,19 +174,20 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        # net = tflearn.fully_connected(inputs, 400, regularizer='L2')
-        net = tflearn.fully_connected(inputs, 400)
-        # net = tflearn.dropout(net, 0.5)
+        # net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 50)
+        net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        # t1 = tflearn.fully_connected(net, 300,regularizer='L2')
-        t1 = tflearn.fully_connected(net, 300)
+        # t1 = tflearn.fully_connected(net, 300)
+        t1 = tflearn.fully_connected(net, 30)
         # t1 = tflearn.dropout(t1,0.5)
-        t2 = tflearn.fully_connected(action, 300)
+        # t2 = tflearn.fully_connected(action, 300)
+        t2 = tflearn.fully_connected(action, 30)
         # t2 = tflearn.dropout(t2,0.5)
         # t1 = tflearn.fully_connected(net, 600)
         # t2 = tflearn.fully_connected(action, 600)
@@ -195,7 +198,6 @@ class CriticNetwork(object):
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
-        # out = tflearn.fully_connected(net, 1, weights_init=w_init, regularizer='L2')
         out = tflearn.fully_connected(net, 1, weights_init=w_init)
         return inputs, action, out
 
@@ -321,11 +323,13 @@ def train(sess, env, args, actor, critic, actor_noise):
             # while noise / dirOut[0] > 0.2:
             #     noise /= 10
             noise = actor_noise()
-            if abs(ave_error) < 0.0001:
+            # if abs(ave_error) < 0.0001:
+            if abs(ave_diff) < 0.0001:
                 noise = 0
             else:
-                while abs(noise) > abs(ave_error / 2.0):
-                    noise /= 2.0
+                # while abs(noise) > abs(ave_error * 0.5):
+                while abs(noise) > abs(float(ave_diff)):
+                    noise *= 0.8
             total_noise += noise
             a = dirOut + noise
 
@@ -361,7 +365,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 diff = y_label - predicted_q_value
                 diff = abs(diff)
-                ave_diff = sum(diff)/float(len(diff))
+                ave_diff = sum(diff)[0]/float(len(diff))
 
 
                 ep_ave_max_q += np.amax(predicted_q_value)
@@ -380,7 +384,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             if terminal:
                 # import matplotlib.pyplot as plt
-                print("ave_diff:"+str(ave_diff))
+                # print("ave_diff:"+str(ave_diff))
                 summary_str = sess.run(summary_ops, feed_dict={
                     # summary_vars[0]: ep_reward ,
                     summary_vars[0]: ep_reward / float(j),
@@ -404,8 +408,8 @@ def train(sess, env, args, actor, critic, actor_noise):
                 if j > 0:
                     ave_error = info.get("avgError")[0]
                     print (total_noise/float(j))
-                    print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f}'.format(int(ep_reward)/float(j), \
-                    i, totalTime, (ep_ave_max_q /float(j)),  ave_error))
+                    print('| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f}'.format(int(ep_reward)/float(j), \
+                    i, totalTime, (ep_ave_max_q /float(j)),  ave_error, float(ave_diff)))
                 break
 
 def main(args):

@@ -106,7 +106,12 @@ class PathFollowing(gym.Env):
         self.state = np.array([error, self.record_buffer[-2],  self.record_buffer[-3],\
                                self.record_buffer[-4], self.record_buffer[-5], self.record_buffer[-6]])
         ratio = 0.95
-        reward = abs(error) * ratio + abs(actionDiff) * (1-ratio)
+        reward = 0
+        if abs(error) > 0.03:
+            reward += ratio * abs(error)
+        if abs(actionDiff) > 0.05:
+            reward += (1-ratio) * abs(actionDiff)
+        # reward = abs(error) * ratio + abs(actionDiff) * (1-ratio)
 
         done = True if self.time > self.max_time or abs(error) > 1 else False
 
