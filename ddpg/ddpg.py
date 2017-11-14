@@ -77,19 +77,22 @@ class ActorNetwork(object):
             self.network_params) + len(self.target_network_params)
 
     def create_actor_network(self):
+        times = 3
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        # net = tflearn.fully_connected(inputs, 400, activation='relu',regularizer='L2')
-        net = tflearn.fully_connected(inputs, 400, activation='relu')
+        net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
+        # net = tflearn.fully_connected(inputs, 400, activation='relu')
+        # net = tflearn.fully_connected(inputs, 800, activation='relu')
         # net = tflearn.fully_connected(inputs, 50, activation='relu')
         net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800, activation='relu')
 
         net = tflearn.layers.normalization.batch_normalization(net)
 
-        net = tflearn.fully_connected(net, 300, activation='relu')
+        # net = tflearn.fully_connected(net, 300, activation='relu')
+        net = tflearn.fully_connected(inputs, 300 * times, activation='relu',regularizer='L2')
+        # net = tflearn.fully_connected(net, 600, activation='relu')
         # net = tflearn.fully_connected(net, 30, activation='relu')
         net = tflearn.dropout(net, 0.5)
-        net = tflearn.fully_connected(net, 600, activation='relu')
 
         net = tflearn.layers.normalization.batch_normalization(net)
 
@@ -174,21 +177,24 @@ class CriticNetwork(object):
         self.action_grads = tf.gradients(self.out, self.action)
 
     def create_critic_network(self):
+        times = 3
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        # net = tflearn.fully_connected(inputs, 400)
+        # net = tflearn.fully_connected(inputs, 800)
+        net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
         # net = tflearn.fully_connected(inputs, 50)
         net = tflearn.dropout(net, 0.5)
         # net = tflearn.fully_connected(inputs, 800)
         net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activations.relu(net)
+        # net = tflearn.activations.relu(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 300)
+        t1 = tflearn.fully_connected(net, 300 * times, regularizer='L2')
         # t1 = tflearn.fully_connected(net, 30)
         # t1 = tflearn.dropout(t1,0.5)
-        t2 = tflearn.fully_connected(action, 300)
+        t2 = tflearn.fully_connected(action, 300 * times, regularizer='L2')
         # t2 = tflearn.fully_connected(action, 30)
         # t2 = tflearn.dropout(t2,0.5)
         # t1 = tflearn.fully_connected(net, 600)
@@ -311,7 +317,7 @@ def train(sess, env, args, actor, critic, actor_noise):
     totalTime = 0
     ave_error = 0
     for i in range(int(args['max_episodes'])):
-        if totalTime > 40000:
+        if totalTime > int(args['max_episodes_len']):
             break
 
         s = env.reset()
@@ -528,8 +534,8 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=60)
-    parser.set_defaults(max_episodes_len=400)
+    parser.set_defaults(max_episodes=120)
+    parser.set_defaults(max_episodes_len=80000)
     # parser.set_defaults(minibatch_size=64)
     parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
