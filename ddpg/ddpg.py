@@ -18,6 +18,7 @@ import tflearn
 import argparse
 import pprint as pp
 from pathfollowing_env import PathFollowing
+from pathfollowing_env_v2 import PathFollowingV2
 from replay_buffer import ReplayBuffer
 import os
 import random
@@ -98,8 +99,16 @@ class ActorNetwork(object):
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
-        out = tflearn.fully_connected(
-            net, self.a_dim, activation='tanh', weights_init=w_init)
+
+        # out = tflearn.fully_connected(
+        #     net, self.a_dim, activation='tanh', weights_init=w_init)
+
+        out1 = tflearn.fully_connected(
+            net, 1, activation='tanh', weights_init=w_init)
+        out2 = tflearn.fully_connected(
+            net, 1, activation='sigmoid', weights_init=w_init)
+        out = tflearn.merge_outputs([out1,out2])
+        # out = np.array([out1,out2])
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
         return inputs, out, scaled_out
@@ -326,7 +335,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         ep_ave_max_q = 0
         ave_diff = 0
         total_loss = 0
-        total_noise = 0.0
+        total_noise = np.array([0.0,0.0])
 
         # for j in range(int(args['max_episode_len'])):
 
@@ -353,17 +362,17 @@ def train(sess, env, args, actor, critic, actor_noise):
             noise = actor_noise()
             # if abs(ave_error) < 0.0001:
             if abs(ave_diff) < 0.0001:
-                noise = 0
+                noise = np.zeros(noise.shape,noise.dtype)
             else:
                 # while abs(noise) > abs(ave_error * 0.5):
-                while abs(noise) > abs(float(ave_diff)):
+                while abs(sum(noise)) > abs(float(ave_diff)):
                     noise *= 0.8
             total_noise += noise
             a = dirOut + noise
 
             # print "noise:"+ str(noise), "a:"+str(a)
 
-            s2, r, terminal, info = env.step(a[0])
+            s2, r, terminal, info = env.step(a)
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
@@ -473,17 +482,18 @@ def main(args):
     with tf.Session() as sess:
 
         # env = gym.make(args['env'])
-        env = PathFollowing()
+        # env = PathFollowing()
+        env = PathFollowingV2()
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = 6  # env.observation_space.shape[0]
+        state_dim = len(env.reset()) #.shape[1] #8  # env.observation_space.shape[0]
         # state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
         # Ensure action bound is symmetric
-        assert (env.action_space.high == -env.action_space.low)
+        # assert (env.action_space.high == -env.action_space.low)
 
         actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']))

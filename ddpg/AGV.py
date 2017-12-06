@@ -6,7 +6,7 @@ class AGV:
     def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
                  l=[1.22, 0.268, 0.268]):
         self.wheelPos = [0, 0]
-        self.uk = np.array([0, 0])
+        self.uk = np.matrix([[0.0], [0.0]])
         self.fai = np.matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 0]])
         self.D = np.matrix([0, 0, 1]).T
         self.L = np.matrix([[0, 0, 0], [0, 0, l[0]], [0, -1 / l[0], 0]])
@@ -17,10 +17,7 @@ class AGV:
         y = self.wheelPos[1] - (np.sin(xita - np.pi / 2.0) * l[0])
         posState = np.array([x, y, xita]).T
 
-        # posState = np.array([0, 0, np.pi/2.0]).T
-        # posState = np.array([0, 0, 0]).T
-
-        B = np.pi / 4.0
+        B = np.pi / 2.0
         rollSpeed = np.array([0, 0, 0]).T
         self.q = np.reshape(np.concatenate((posState.T, np.array([B]), rollSpeed)), [7, 1])
 
@@ -40,9 +37,6 @@ class AGV:
         self.J2 = np.matrix([[self.rs, 0, 0], [0, self.rf, 0], [0, 0, self.rf]])
         self.P = np.matrix([1, 0, 0]).T
 
-
-        # print self.Mba
-        # print self.Tba
 
     def countHB(self):
         return np.dot(np.dot(self.getSumB().T, self.M),
@@ -98,12 +92,18 @@ class AGV:
     def setB(self, b):
         self.q[3] = b
 
-    def control(self):
+    def control(self, dk):
         uk = self.uk
-        # self.setB(uk[1])
+        self.uk = self.uk + dk
         s = self.getS()
         dq = np.dot(s, uk)
         self.q = self.q + dq
+
+        if self.q[3] < 0:
+            self.q[3] = 0
+        elif self.q[3] > np.pi:
+            self.q[3] = np.pi
+
         x, y, xita, l = float('%.8f' % self.q[0]), float('%.8f' % self.q[1]), float('%.8f' % self.q[2]), self.l[0]
         cosres = float('%.8f' % np.cos(xita - np.pi / 2.0))
         sinres = float('%.8f' % np.sin(xita - np.pi / 2.0))
@@ -185,48 +185,11 @@ class AGV:
         return np.matrix([[float(self.countf1()), float(self.countf2())]]).T
 
     def controlInput(self, input):
-        step1 = np.dot(self.countMba().I, self.countTba())
-        step1 = np.dot(step1, input)
-        step2 = np.dot(self.countMba().I, self.countVba())
-        return step1 - step2
-
-
-a = AGV()
-# print a.q
-input = np.matrix([[0, 100]]).T
-a.uk = np.matrix([[1, 0]]).T
-
-
-x, y = [float(a.q[0])], [float(a.q[1])]
-wx, wy = [0], [0]
-xita = []
-
-B = []
-
-# fig = plt.figure()
-# ax = fig.add_subplot(2, 1, 1)
-# ax2 = fig.add_subplot(2, 1, 2)
-
-for i in range(100):
-    dk = a.controlInput(input)
-    a.uk = a.uk + dk
-    a.control()
-    x.append(float(a.q[0]))
-    y.append(float(a.q[1]))
-    wx.append(float(a.wheelPos[0]))
-    wy.append(float(a.wheelPos[1]))
-    xita.append(float(a.q[2]))
-    B.append(float(a.q[3]))
-
-    # if i % 10 == 0:
-    #     print "\n"
-    #     print a.uk
-    #     print a.q #a.q[0],a.q[1],a.q[2],a.q[3]
-
-    input = np.matrix([[0, 0]]).T
-
-# ax.plot(x, y, 'g-')
-# ax.plot(wx, wy, 'b-')
-# ax2.plot(xita, 'r-')
-# ax2.plot(B, 'y-')
-# plt.show()
+        a, b, c = self.countMba().I, self.countTba(), self.countVba()
+        # step1 = np.dot(self.countMba().I, self.countTba())
+        step1 = np.dot(a, b)
+        step1 = np.dot(step1, input.T)
+        # step2 = np.dot(self.countMba().I, self.countVba())
+        step2 = np.dot(a, c)
+        dk = (step1 - step2)
+        self.control(dk)
