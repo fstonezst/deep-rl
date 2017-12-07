@@ -17,7 +17,6 @@ from gym import wrappers
 import tflearn
 import argparse
 import pprint as pp
-from pathfollowing_env import PathFollowing
 from pathfollowing_env_v2 import PathFollowingV2
 from replay_buffer import ReplayBuffer
 import os

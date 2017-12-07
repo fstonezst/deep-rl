@@ -1,8 +1,9 @@
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 class AGV:
+    MAX_SPEED = 2 * np.pi
     def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
                  l=[1.22, 0.268, 0.268]):
         self.wheelPos = [0, 0]
@@ -93,16 +94,28 @@ class AGV:
         self.q[3] = b
 
     def control(self, dk):
-        uk = self.uk
+        # uk = self.uk
         self.uk = self.uk + dk
-        s = self.getS()
-        dq = np.dot(s, uk)
-        self.q = self.q + dq
 
-        if self.q[3] < 0:
-            self.q[3] = 0
-        elif self.q[3] > np.pi:
-            self.q[3] = np.pi
+        angle = float(self.q[3])
+        if angle <= np.pi * (10.0 / 180.0):
+            self.uk[1] = 0
+            self.q[3] = np.pi * (10.0 / 180.0)
+        elif angle >= np.pi * (170.0 / 180.0):
+            self.uk[1] = 0
+            self.q[3] = np.pi * (170.0 / 180.0)
+
+        if self.uk[0] > AGV.MAX_SPEED:
+            self.uk[0] = AGV.MAX_SPEED
+
+        print self.uk[0],self.uk[1],self.q[3]
+
+
+
+        s = self.getS()
+        dq = np.dot(s, self.uk)
+
+        self.q = self.q + dq
 
         x, y, xita, l = float('%.8f' % self.q[0]), float('%.8f' % self.q[1]), float('%.8f' % self.q[2]), self.l[0]
         cosres = float('%.8f' % np.cos(xita - np.pi / 2.0))
@@ -193,3 +206,21 @@ class AGV:
         step2 = np.dot(a, c)
         dk = (step1 - step2)
         self.control(dk)
+
+car = AGV()
+pathx, pathy = [], []
+for i in range(500):
+    pathx.append(car.q[0])
+    pathy.append(car.q[1])
+    # car.control(np.matrix([[1], [2]]))
+    if i == 0:
+        car.controlInput(np.matrix([0, 50]))
+    else:
+        car.controlInput(np.matrix([0,0]))
+
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(pathx,pathy,'r-o')
+plt.show()
+

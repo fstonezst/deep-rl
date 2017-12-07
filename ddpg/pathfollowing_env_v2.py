@@ -5,6 +5,7 @@ import numpy as np
 from gym.utils import seeding
 from gym import spaces
 from AGV import AGV
+import matplotlib.pyplot as plt
 
 class PathFollowingV2(gym.Env):
     metadata = {
@@ -25,7 +26,8 @@ class PathFollowingV2(gym.Env):
         self.action_buffer = []
         self.lastAction = 0
         self.pathStore = []
-        self.moveStore = []
+        self.moveStorex = []
+        self.moveStorey = []
         self.state = np.array([0, 0, 0, 0, 0, 0, float(self.car.q[3]), float(self.car.q[4])])
         self.movepath = []
         return np.array(self.state)
@@ -45,7 +47,8 @@ class PathFollowingV2(gym.Env):
         self.lastAction =np.array([0,0])
 
         self.pathStore = []
-        self.moveStore = []
+        self.moveStorex, self.moveStorey = [], []
+        self.action_r_store,self.action_s_store = [], []
 
         self.error_max_queue = []
         self.error_min_queue = []
@@ -96,6 +99,8 @@ class PathFollowingV2(gym.Env):
 
     def _step(self, action):
         self.car.controlInput(action)
+        self.action_r_store.append(float(action[0][0]))
+        self.action_s_store.append(float(action[0][1]))
 
         actionDiff = action - self.lastAction
         actionDiff = actionDiff[0]
@@ -103,8 +108,12 @@ class PathFollowingV2(gym.Env):
 
         self.time += 1
 
+        curcarx, curcary = float(self.car.q[0]), float(self.car.q[1])
+        self.moveStorex.append(curcarx)
+        self.moveStorey.append(curcary)
+
         # self.moveStore.append(self.car_position)
-        error = (np.square(float(self.car.q[0])) + np.square(float(self.car.q[1]))) - np.square(self.r)
+        error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
 
         self.totalError += abs(error)
         self.record_buffer.append(error)
@@ -145,10 +154,20 @@ class PathFollowingV2(gym.Env):
         done = True if self.time > self.max_time or abs(error) > 100 else False
 
         if done:
+            fig = plt.figure()
+            ax = fig.add_subplot(2,1,1)
+            ax1 = fig.add_subplot(2,1,2)
+            ax.plot(self.moveStorex,self.moveStorey,'g-',label='move_path')
+            ax1.plot(self.action_r_store,'r-',label='dir')
+            ax1.plot(self.action_s_store,'b-',label='speed')
+            plt.show()
             # print(self.totalError/self.time)
-            return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore], \
-                                                     "avgError": [self.totalError/float(self.time)]}
-        return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore]}
+            # return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore], \
+                                                     # "avgError": [self.totalError/float(self.time)]}
+            return np.array(self.state), -reward, done, {"result": [], \
+                                                         "avgError": [self.totalError/float(self.time)]}
+        # return np.array(self.state), -reward, done, {"result": [self.pathStore, self.moveStore]}
+        return np.array(self.state), -reward, done, {"result": []}
 
 
 
