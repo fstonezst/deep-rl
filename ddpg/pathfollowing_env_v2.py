@@ -69,7 +69,7 @@ class PathFollowingV2(gym.Env):
         # self.max_position = 1
 
         self.max_time = 300
-        self.error_around = 5
+        self.error_around = 1
         self.viewer = None
 
         # self.path = [math.sin(x*(math.pi/180.0)) for x in range(0, 512)]
@@ -119,13 +119,15 @@ class PathFollowingV2(gym.Env):
         self.time += 1
 
         curcarx, curcary = float(self.car.q[0]), float(self.car.q[1])
+        wheelx, wheely = float(self.car.wheelPos[0]),float(self.car.wheelPos[1])
         self.moveStorex.append(curcarx)
         self.moveStorey.append(curcary)
-        self.wheelx.append(float(self.car.wheelPos[0]))
-        self.wheely.append(float(self.car.wheelPos[1]))
+        self.wheelx.append(wheelx)
+        self.wheely.append(wheely)
 
         # self.moveStore.append(self.car_position)
-        error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
+        # error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
+        error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
 
         self.totalError += abs(error)
         self.record_buffer.append(error)
@@ -155,13 +157,15 @@ class PathFollowingV2(gym.Env):
         ratio = 0.95
         reward = 0
         diff1, diff2 = actionDiff[0], actionDiff[1]
+        if abs(float(self.car.q[4])) < np.pi:
+            reward += 1
         if abs(error) > 0.03:
             reward += ratio * abs(error)
-        if abs(diff1) > 0.01:
-            reward += (1-ratio) * abs(actionDiff[0])
-        # if abs(actionDiff[1]) > 0.05 :
-        if abs(diff2) > 100:
-            reward += (1-ratio) * abs(actionDiff[1])
+
+        # if abs(diff1) > 0.01:
+        #     reward += (1-ratio) * abs(actionDiff[0])
+        # if abs(diff2) > 100:
+        #     reward += (1-ratio) * abs(actionDiff[1])
 
         done = True if self.time > self.max_time or abs(error) > self.error_around else False
 
