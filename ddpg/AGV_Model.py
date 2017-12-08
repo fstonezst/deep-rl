@@ -1,9 +1,12 @@
+# -- coding: utf-8 --
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 class AGV:
-    MAX_SPEED = 2 * np.pi
+    MAX_SPEED = 5 * np.pi
+    count = 0
+
     def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
                  l=[1.22, 0.268, 0.268]):
         self.wheelPos = [0, 0]
@@ -94,9 +97,10 @@ class AGV:
         self.q[3] = b
 
     def control(self, dk):
-        # uk = self.uk
         self.uk = self.uk + dk
 
+
+        #constraint of angle and speed
         angle = float(self.q[3])
         if angle <= np.pi * (10.0 / 180.0):
             self.uk[1] = 0
@@ -107,8 +111,12 @@ class AGV:
 
         if self.uk[0] > AGV.MAX_SPEED:
             self.uk[0] = AGV.MAX_SPEED
+        elif self.uk[0] < 0:
+            self.uk[0] = 0
 
-        print self.uk[0],self.uk[1],self.q[3]
+        #debug
+        AGV.count += 1
+        print AGV.count,':',self.uk[0],self.uk[1],self.q[3]
 
 
 
@@ -209,18 +217,24 @@ class AGV:
 
 car = AGV()
 pathx, pathy = [], []
-for i in range(500):
+centerx, centery = [], []
+for i in range(8):
     pathx.append(car.q[0])
     pathy.append(car.q[1])
+    centerx.append(car.wheelPos[0])
+    centery.append(car.wheelPos[1])
     # car.control(np.matrix([[1], [2]]))
-    if i == 0:
-        car.controlInput(np.matrix([0, 50]))
-    else:
-        car.controlInput(np.matrix([0,0]))
+    car.controlInput(np.matrix([5, 2000]))
+    # if i < 50:
+    #     car.controlInput(np.matrix([0.01, 50]))
+    # else:
+    #     car.controlInput(np.matrix([-0.05, -70]))
+        # car.controlInput(np.matrix([0,0]))
 
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(pathx,pathy,'r-o')
+ax.plot(centerx,centery,'b-*')
 plt.show()
 

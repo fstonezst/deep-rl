@@ -4,7 +4,7 @@ import math
 import numpy as np
 from gym.utils import seeding
 from gym import spaces
-from AGV import AGV
+from AGV_Model import AGV
 import matplotlib.pyplot as plt
 
 class PathFollowingV2(gym.Env):
@@ -67,8 +67,8 @@ class PathFollowingV2(gym.Env):
         self.movepath = [0 for _ in range(0, 180)]
 
         # action bounded
-        min_orientation, max_orientation = -10 ,10
-        min_rotation, max_rotation = 0, 600
+        min_orientation, max_orientation = -5, 5
+        min_rotation, max_rotation = -2000, 2000
         self.action_min = np.array([min_orientation, min_rotation])
         self.action_max = np.array([max_orientation, max_rotation])
 

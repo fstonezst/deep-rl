@@ -98,16 +98,8 @@ class ActorNetwork(object):
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
-
-        # out = tflearn.fully_connected(
-        #     net, self.a_dim, activation='tanh', weights_init=w_init)
-
-        out1 = tflearn.fully_connected(
-            net, 1, activation='tanh', weights_init=w_init)
-        out2 = tflearn.fully_connected(
-            net, 1, activation='sigmoid', weights_init=w_init)
-        out = tflearn.merge_outputs([out1,out2])
-        # out = np.array([out1,out2])
+        out = tflearn.fully_connected(
+            net, self.a_dim, activation='tanh', weights_init=w_init)
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
         return inputs, out, scaled_out
@@ -492,7 +484,7 @@ def main(args):
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
         # Ensure action bound is symmetric
-        # assert (env.action_space.high == -env.action_space.low)
+        assert (env.action_space.high == -env.action_space.low)
 
         actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']))
