@@ -89,7 +89,7 @@ class ActorNetwork(object):
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # net = tflearn.fully_connected(net, 300, activation='relu')
-        net = tflearn.fully_connected(inputs, 300 * times, activation='relu',regularizer='L2')
+        net = tflearn.fully_connected(net, 300 * times, activation='relu',regularizer='L2')
         # net = tflearn.fully_connected(net, 600, activation='relu')
         # net = tflearn.fully_connected(net, 30, activation='relu')
         net = tflearn.dropout(net, 0.5)
@@ -337,7 +337,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
 
-            # noise = actor_noise() / 2
+            noise = actor_noise()
             # if i < 40:
             #     noise = actor_noise() / 10
             # else:
@@ -350,16 +350,17 @@ def train(sess, env, args, actor, critic, actor_noise):
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
             # while noise / dirOut[0] > 0.2:
             #     noise /= 10
-            noise = actor_noise()
+            # noise = actor_noise()
             # if abs(ave_error) < 0.0001:
-            if abs(ave_diff) < 0.0001:
-                noise = np.zeros(noise.shape,noise.dtype)
-            else:
+            # if abs(ave_diff) < 0.0001:
+            #     noise = np.zeros(noise.shape,noise.dtype)
+            # else:
                 # while abs(noise) > abs(ave_error * 0.5):
-                while abs(sum(noise)) > abs(float(ave_diff)):
-                    noise *= 0.8
+                # while abs(sum(noise)) > abs(float(ave_diff)):
+                #     noise *= 0.8
             total_noise += noise
             a = dirOut + noise
+            # a = dirOut
 
             # print "noise:"+ str(noise), "a:"+str(a)
 
@@ -431,7 +432,8 @@ def train(sess, env, args, actor, critic, actor_noise):
             ep_reward += r
 
             if terminal:
-                # import matplotlib.pyplot as plt
+                import matplotlib.pyplot as plt
+                from matplotlib.patches import Circle
                 # print("ave_diff:"+str(ave_diff))
                 summary_str = sess.run(summary_ops, feed_dict={
                     # summary_vars[0]: ep_reward ,
@@ -446,6 +448,22 @@ def train(sess, env, args, actor, critic, actor_noise):
                 writer.flush()
 
                 totalTime += j  # info.get("times")
+
+                if i % 10 == 0:
+                    moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
+                    wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+                    action_r, action_s = info.get("action")[0], info.get("action")[1]
+                    fig = plt.figure()
+                    ax = fig.add_subplot(3,1,1)
+                    ax1 = fig.add_subplot(3,1,2)
+                    ax2 = fig.add_subplot(3,1,3)
+                    ax.plot(moveStorex,moveStorey,'b-o',label='move_path')
+                    ax.plot(wheelx, wheely,'r-*',label='wheel_path')
+                    ax2.plot(action_r,'y-o',label='dir')
+                    ax1.plot(action_s,'r-*',label='speed')
+                    cir1 = Circle(xy=(0.0, 0.0), radius=10, alpha=0.4)
+                    ax.add_patch(cir1)
+                    plt.show()
 
                 # if j > 750 and i % 5 == 0:
                 # if totalTime > 10000:
@@ -484,7 +502,7 @@ def main(args):
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
         # Ensure action bound is symmetric
-        assert (env.action_space.high == -env.action_space.low)
+        # assert (env.action_space.high == -env.action_space.low)
 
         actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']))
