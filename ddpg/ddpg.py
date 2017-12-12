@@ -21,6 +21,8 @@ from pathfollowing_env_v2 import PathFollowingV2
 from replay_buffer import ReplayBuffer
 import os
 import random
+from AGV_Model import AGV
+import csv
 
 
 # ===========================
@@ -301,6 +303,7 @@ def build_summaries():
 # ===========================
 
 def train(sess, env, args, actor, critic, actor_noise):
+    from Noise import Noise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
 
@@ -316,6 +319,10 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     totalTime = 0
     ave_error = 0
+    exp_time = 800
+    oriNoiseRate, rotNoiseRate = 1 , 0.8
+
+
     for i in range(int(args['max_episodes'])):
         if totalTime > int(args['max_episodes_len']):
             break
@@ -326,7 +333,15 @@ def train(sess, env, args, actor, critic, actor_noise):
         ep_ave_max_q = 0
         ave_diff = 0
         total_loss = 0
-        total_noise = np.array([0.0,0.0])
+
+        # DELTA  The rate of change (time)
+        # SIGMA  Volatility of the stochastic processes
+        # OU_A   The rate of mean reversion
+        # OU_MU  The long run average interest rate
+        orientationN, rotationN = Noise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate), Noise(delta=0.5, sigma=0.5*AGV.MAX_ROTATION * rotNoiseRate)
+
+        total_noise0, total_noise1 = [], []
+        orientationNoise, rotationNoise = 0, 0
 
         # for j in range(int(args['max_episode_len'])):
 
@@ -337,32 +352,37 @@ def train(sess, env, args, actor, critic, actor_noise):
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
 
-            noise = actor_noise()
-            # if i < 40:
-            #     noise = actor_noise() / 10
-            # else:
-            #     noise = actor_noise()
-
-            # if i > 40:
-            #     noise = noise / 10
+            # noise = actor_noise()
 
             # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
-            # while noise / dirOut[0] > 0.2:
-            #     noise /= 10
-            # noise = actor_noise()
-            # if abs(ave_error) < 0.0001:
-            # if abs(ave_diff) < 0.0001:
-            #     noise = np.zeros(noise.shape,noise.dtype)
-            # else:
-                # while abs(noise) > abs(ave_error * 0.5):
-                # while abs(sum(noise)) > abs(float(ave_diff)):
-                #     noise *= 0.8
-            total_noise += noise
-            a = dirOut + noise
-            # a = dirOut
 
-            # print "noise:"+ str(noise), "a:"+str(a)
+            if i < exp_time:
+                # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
+                # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
+                orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
+                rotation, rotationNoise = dirOut[0][1], rotationN.ornstein_uhlenbeck_level(rotationNoise)
+                if abs(orientation) <= 0.01:
+                    orientationNoise = 0
+                while abs(orientationNoise) > abs(orientation) * oriNoiseRate:
+                    orientationNoise /= 2
+                if abs(rotation) <= 1:
+                    rotationNoise = 0
+                while abs(rotationNoise) > abs(rotation) * rotNoiseRate:
+                    rotationNoise /= 2
+                noise = np.array([orientationNoise, rotationNoise])
+                total_noise0.append(orientationNoise)
+                total_noise1.append(rotationNoise)
+                #
+                # orientation += orientationNoise
+                # rotation += rotationNoise
+                #
+                # a = np.array([orientation, rotation])
+                a = dirOut + noise
+            else:
+                a = dirOut
+
+            # total_noise += noise
 
             s2, r, terminal, info = env.step(a)
 
@@ -432,55 +452,64 @@ def train(sess, env, args, actor, critic, actor_noise):
             ep_reward += r
 
             if terminal:
-                import matplotlib.pyplot as plt
-                from matplotlib.patches import Circle
-                # print("ave_diff:"+str(ave_diff))
-                summary_str = sess.run(summary_ops, feed_dict={
-                    # summary_vars[0]: ep_reward ,
-                    summary_vars[0]: ep_reward / float(j),
-                    summary_vars[1]: ep_ave_max_q / float(j),
-                    summary_vars[2]: total_loss / float(j),
-                    summary_vars[3]: info.get("avgError")[0]
-                })
 
-                writer.add_summary(summary_str, i)
+                totalTime += j
 
-                writer.flush()
+                moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
+                wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+                action_r, action_s = info.get("action")[0], info.get("action")[1]
+                speed = info.get("speed")
+                speed_reward, error_reward = info.get("reward")[0], info.get("reward")[1]
 
-                totalTime += j  # info.get("times")
+                avgError = info.get("avgError")
 
-                if i % 10 == 0:
-                    moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
-                    wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
-                    action_r, action_s = info.get("action")[0], info.get("action")[1]
-                    fig = plt.figure()
-                    ax = fig.add_subplot(3,1,1)
-                    ax1 = fig.add_subplot(3,1,2)
-                    ax2 = fig.add_subplot(3,1,3)
-                    ax.plot(moveStorex,moveStorey,'b-o',label='move_path')
-                    ax.plot(wheelx, wheely,'r-*',label='wheel_path')
-                    ax2.plot(action_r,'y-o',label='dir')
-                    ax1.plot(action_s,'r-*',label='speed')
-                    cir1 = Circle(xy=(0.0, 0.0), radius=10, alpha=0.4)
-                    ax.add_patch(cir1)
-                    plt.show()
+                debug = True
+                if debug:
+                    summary_str = sess.run(summary_ops, feed_dict={
+                        # summary_vars[0]: ep_reward ,
+                        summary_vars[0]: ep_reward / float(j),
+                        summary_vars[1]: ep_ave_max_q / float(j),
+                        summary_vars[2]: total_loss / float(j),
+                        summary_vars[3]: avgError
+                    })
 
-                # if j > 750 and i % 5 == 0:
-                # if totalTime > 10000:
-                #     list = info.get("result")
-                #     fig = plt.figure()
-                #     ax1 = fig.add_subplot(1, 1, 1)
-                #     ax1.plot(list[0], 'g-', label='Route')
-                #     ax1.plot(list[1], 'o-',color='red', label='Move')
-                #     plt.show()
+                    writer.add_summary(summary_str, i)
+
+                    writer.flush()
+
+                    if i % 100 == 0 and i != 0:
+                        with open('movePath'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(moveStorex,moveStorey):
+                                csv_writer.writerow([x,y])
+
+                        with open('wheelPath'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(wheelx,wheely):
+                                csv_writer.writerow([x,y])
+
+                        with open('action'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(action_r,action_s):
+                                csv_writer.writerow([x,y])
+
+                        with open('reward'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(speed_reward,error_reward):
+                                csv_writer.writerow([x,y])
 
                 if j > 0:
-                    ave_error = info.get("avgError")[0]
-                    print (total_noise / float(j))
-                    # print (total_loss/float(j))
+                    ave_error = info.get("avgError")
+                    # print max(total_noise0), max(total_noise1)
+                    if i < exp_time:
+                        print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
+                        print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
+                    # print(
+                    # '| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f} | loss: {:.4f}'.format(
+                    #     int(ep_reward) / float(j), i, totalTime, (ep_ave_max_q / float(j)), ave_error, float(ave_diff), (total_loss / float(j))))
                     print(
-                    '| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f} | loss: {:.4f}'.format(
-                        int(ep_reward) / float(j), i, totalTime, (ep_ave_max_q / float(j)), ave_error, float(ave_diff), (total_loss / float(j))))
+                        'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
+                           int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), ave_error, sum(speed)/float(j), max(speed)))
                 break
     writer.close()
 
@@ -553,7 +582,7 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=120)
+    parser.set_defaults(max_episodes=1001)
     parser.set_defaults(max_episodes_len=80000)
     # parser.set_defaults(minibatch_size=64)
     parser.set_defaults(minibatch_size=128)

@@ -1,11 +1,12 @@
 # -- coding: utf-8 --
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 
 class AGV:
-    MAX_SPEED = 5 * np.pi
+    MAX_SPEED = 2 * np.pi
     MAX_ANGLE, MIN_ANGLE = np.pi * (170.0 / 180.0), np.pi * (10.0 / 180.0)
+    MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
     count = 0
 
     def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
@@ -117,6 +118,7 @@ class AGV:
         elif self.uk[0] < 0:
             self.uk[0] = 0
 
+
         #debug
         # AGV.count += 1
         # print AGV.count,':',self.uk[0],self.uk[1],self.q[3]
@@ -127,6 +129,12 @@ class AGV:
         dq = np.dot(s, self.uk)
 
         self.q = self.q + dq
+
+        # if float(self.q[2]) > 2 * np.pi:
+        #     self.q[2] %= (2 * np.pi)
+        # elif self.q[2] < -2 * np.pi:
+        #     self.q[2] = -(abs(float(self.q[2]) % (2 * np.pi)))
+
 
         x, y, xita, l = float('%.8f' % self.q[0]), float('%.8f' % self.q[1]), float('%.8f' % self.q[2]), self.l[0]
         cosres = float('%.8f' % np.cos(xita - np.pi / 2.0))
@@ -218,9 +226,12 @@ class AGV:
         dk = (step1 - step2)
         self.control(dk)
 
+
+# import matplotlib.pyplot as plt
 # car = AGV()
 # pathx, pathy = [], []
 # centerx, centery = [], []
+# B = []
 # for i in range(100):
 #     pathx.append(car.q[0])
 #     pathy.append(car.q[1])
@@ -229,15 +240,20 @@ class AGV:
 #     # car.control(np.matrix([[1], [2]]))
 #     # car.controlInput(np.matrix([5, 2000]))
 #     if i < 50:
-#         car.controlInput(np.matrix([0.01, 50]))
+#         car.controlInput(np.matrix([-0.05, 50]))
 #     else:
-#         car.controlInput(np.matrix([-0.05, -70]))
+#         car.controlInput(np.matrix([-0.05, 70]))
+#     B.append(float(car.q[2]))
+#     print car.uk[0],car.q[3]
 #         # car.controlInput(np.matrix([0,0]))
 #
-#
 # fig = plt.figure()
-# ax = fig.add_subplot(1,1,1)
+# ax = fig.add_subplot(2,1,1)
+# ax1 = fig.add_subplot(2,1,2)
+#
 # ax.plot(pathx,pathy,'r-o')
 # ax.plot(centerx,centery,'b-*')
+# ax1.plot(B,'b-*')
+#
 # plt.show()
 
