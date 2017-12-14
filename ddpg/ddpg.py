@@ -12,269 +12,17 @@ Author: Patrick Emami
 # -- coding: utf-8 --
 import tensorflow as tf
 import numpy as np
-import gym
 from gym import wrappers
-import tflearn
 import argparse
 import pprint as pp
 from pathfollowing_env_v2 import PathFollowingV2
 from replay_buffer import ReplayBuffer
+from Critic import CriticNetwork
+from Actor import ActorNetwork
 import os
 import random
 from AGV_Model import AGV
 import csv
-
-
-# ===========================
-#   Actor and Critic DNNs
-# ===========================
-
-class ActorNetwork(object):
-    """
-    Input to the network is the state, output is the action
-    under a deterministic policy.
-
-    The output layer activation is a tanh to keep the action
-    between -action_bound and action_bound
-    """
-
-    def __init__(self, sess, state_dim, action_dim, action_bound, learning_rate, tau):
-        self.sess = sess
-        self.s_dim = state_dim
-        self.a_dim = action_dim
-        self.action_bound = action_bound
-        self.learning_rate = learning_rate
-        self.tau = tau
-
-        # Actor Network
-        self.inputs, self.out, self.scaled_out = self.create_actor_network()
-
-        self.network_params = tf.trainable_variables()
-
-        # Target Network
-        self.target_inputs, self.target_out, self.target_scaled_out = self.create_actor_network()
-
-        self.target_network_params = tf.trainable_variables()[
-                                     len(self.network_params):]
-
-        # Op for periodically updating target network with online network
-        # weights
-        self.update_target_network_params = \
-            [self.target_network_params[i].assign(tf.multiply(self.network_params[i], self.tau) +
-                                                  tf.multiply(self.target_network_params[i], 1. - self.tau))
-             for i in range(len(self.target_network_params))]
-
-        # This gradient will be provided by the critic network
-        self.action_gradient = tf.placeholder(tf.float32, [None, self.a_dim])
-
-        # Combine the gradients here
-        self.actor_gradients = tf.gradients(
-            self.scaled_out, self.network_params, -self.action_gradient)
-
-        # Optimization Op
-        self.optimize = tf.train.AdamOptimizer(self.learning_rate). \
-            apply_gradients(zip(self.actor_gradients, self.network_params))
-
-        self.num_trainable_vars = len(
-            self.network_params) + len(self.target_network_params)
-
-    def create_actor_network(self):
-        times = 3
-        inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
-        # net = tflearn.fully_connected(inputs, 400, activation='relu')
-        # net = tflearn.fully_connected(inputs, 800, activation='relu')
-        # net = tflearn.fully_connected(inputs, 50, activation='relu')
-        net = tflearn.dropout(net, 0.5)
-        # net = tflearn.fully_connected(inputs, 800, activation='relu')
-
-        net = tflearn.layers.normalization.batch_normalization(net)
-
-        # net = tflearn.fully_connected(net, 300, activation='relu')
-        net = tflearn.fully_connected(net, 300 * times, activation='relu',regularizer='L2')
-        # net = tflearn.fully_connected(net, 600, activation='relu')
-        # net = tflearn.fully_connected(net, 30, activation='relu')
-        net = tflearn.dropout(net, 0.5)
-
-        net = tflearn.layers.normalization.batch_normalization(net)
-
-        # Final layer weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
-        out = tflearn.fully_connected(
-            net, self.a_dim, activation='tanh', weights_init=w_init)
-        # Scale output to -action_bound to action_bound
-        scaled_out = tf.multiply(out, self.action_bound)
-        return inputs, out, scaled_out
-
-    def train(self, inputs, a_gradient):
-        self.sess.run(self.optimize, feed_dict={
-            self.inputs: inputs,
-            self.action_gradient: a_gradient
-        })
-
-    def predict(self, inputs):
-        return self.sess.run(self.scaled_out, feed_dict={
-            self.inputs: inputs
-        })
-
-    def predict_target(self, inputs):
-        return self.sess.run(self.target_scaled_out, feed_dict={
-            self.target_inputs: inputs
-        })
-
-    def update_target_network(self):
-        self.sess.run(self.update_target_network_params)
-
-    def get_num_trainable_vars(self):
-        return self.num_trainable_vars
-
-
-class CriticNetwork(object):
-    """
-    Input to the network is the state and action, output is Q(s,a).
-    The action must be obtained from the output of the Actor network.
-
-    """
-
-    def __init__(self, sess, state_dim, action_dim, learning_rate, tau, gamma, num_actor_vars):
-        self.sess = sess
-        self.s_dim = state_dim
-        self.a_dim = action_dim
-        self.learning_rate = learning_rate
-        self.tau = tau
-        self.gamma = gamma
-
-        # Create the critic network
-        self.inputs, self.action, self.out = self.create_critic_network()
-
-        self.network_params = tf.trainable_variables()[num_actor_vars:]
-
-        # Target Network
-        self.target_inputs, self.target_action, self.target_out = self.create_critic_network()
-
-        self.target_network_params = tf.trainable_variables()[(len(self.network_params) + num_actor_vars):]
-
-        # Op for periodically updating target network with online network
-        # weights with regularization
-        self.update_target_network_params = \
-            [self.target_network_params[i].assign(tf.multiply(self.network_params[i], self.tau) \
-                                                  + tf.multiply(self.target_network_params[i], 1. - self.tau))
-             for i in range(len(self.target_network_params))]
-
-        # Network target (y_i)
-        self.predicted_q_value = tf.placeholder(tf.float32, [None, 1])
-
-        # with tf.name_scope('loss'):
-        # Define loss and optimization Op
-        self.loss = tflearn.mean_square(self.predicted_q_value, self.out)
-        self.optimize = tf.train.AdamOptimizer(
-            self.learning_rate).minimize(self.loss)
-        # self.loss_summary = tf.summary.scalar('loss', self.loss)
-
-        # Get the gradient of the net w.r.t. the action.
-        # For each action in the minibatch (i.e., for each x in xs),
-        # this will sum up the gradients of each critic output in the minibatch
-        # w.r.t. that action. Each output is independent of all
-        # actions except for one.
-        self.action_grads = tf.gradients(self.out, self.action)
-
-    def create_critic_network(self):
-        times = 3
-        inputs = tflearn.input_data(shape=[None, self.s_dim])
-        action = tflearn.input_data(shape=[None, self.a_dim])
-        # net = tflearn.fully_connected(inputs, 400)
-        # net = tflearn.fully_connected(inputs, 800)
-        net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
-        # net = tflearn.fully_connected(inputs, 50)
-        net = tflearn.dropout(net, 0.5)
-        # net = tflearn.fully_connected(inputs, 800)
-        net = tflearn.layers.normalization.batch_normalization(net)
-        # net = tflearn.activations.relu(net)
-
-        # Add the action tensor in the 2nd hidden layer
-        # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 300 * times, regularizer='L2')
-        # t1 = tflearn.fully_connected(net, 30)
-        # t1 = tflearn.dropout(t1,0.5)
-        t2 = tflearn.fully_connected(action, 300 * times, regularizer='L2')
-        # t2 = tflearn.fully_connected(action, 30)
-        # t2 = tflearn.dropout(t2,0.5)
-        # t1 = tflearn.fully_connected(net, 600)
-        # t2 = tflearn.fully_connected(action, 600)
-
-        net = tflearn.activation(
-            tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
-
-        # linear layer connected to 1 output representing Q(s,a)
-        # Weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
-        out = tflearn.fully_connected(net, 1, weights_init=w_init)
-        return inputs, action, out
-
-    def train(self, inputs, action, predicted_q_value):
-        # return self.sess.run([self.loss_summary, self.out, self.optimize], feed_dict={
-        return self.sess.run([self.out, self.optimize], feed_dict={
-            self.inputs: inputs,
-            self.action: action,
-            self.predicted_q_value: predicted_q_value
-        })
-
-    def getOut(self, inputs, action):
-        return self.sess.run([self.out], feed_dict={
-            self.inputs: inputs,
-            self.action: action
-        })
-
-    # def getLoss(self, out, predicted_q_value):
-    #     return self.sess.run([self.loss], feed_dict={
-    #         self.out:out
-    #
-    #     })
-
-    def predict(self, inputs, action):
-        return self.sess.run(self.out, feed_dict={
-            self.inputs: inputs,
-            self.action: action
-        })
-
-    def predict_target(self, inputs, action):
-        return self.sess.run(self.target_out, feed_dict={
-            self.target_inputs: inputs,
-            self.target_action: action
-        })
-
-    def action_gradients(self, inputs, actions):
-        return self.sess.run(self.action_grads, feed_dict={
-            self.inputs: inputs,
-            self.action: actions
-        })
-
-    def update_target_network(self):
-        self.sess.run(self.update_target_network_params)
-
-
-# Taken from https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py, which is
-# based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
-class OrnsteinUhlenbeckActionNoise:
-    def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
-        self.theta = theta
-        self.mu = mu
-        self.sigma = sigma
-        self.dt = dt
-        self.x0 = x0
-        self.reset()
-
-    def __call__(self):
-        x = self.x_prev + self.theta * (self.mu - self.x_prev) * self.dt + \
-            self.sigma * np.sqrt(self.dt) * np.random.normal(size=self.mu.shape)
-        self.x_prev = x
-        return x
-
-    def reset(self):
-        self.x_prev = self.x0 if self.x0 is not None else np.zeros_like(self.mu)
-
-    def __repr__(self):
-        return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
 
 
 # ===========================
@@ -302,8 +50,8 @@ def build_summaries():
 #   Agent Training
 # ===========================
 
-def train(sess, env, args, actor, critic, actor_noise):
-    from Noise import Noise
+def train(sess, env, args, actor, critic):
+    from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
 
@@ -319,7 +67,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     totalTime = 0
     ave_error = 0
-    exp_time = 800
+    exp_time = 990
     oriNoiseRate, rotNoiseRate = 1 , 0.8
 
 
@@ -338,7 +86,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         # SIGMA  Volatility of the stochastic processes
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
-        orientationN, rotationN = Noise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate), Noise(delta=0.5, sigma=0.5*AGV.MAX_ROTATION * rotNoiseRate)
+        orientationN, rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate), OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
 
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
@@ -516,7 +264,8 @@ def train(sess, env, args, actor, critic, actor_noise):
 
 def main(args):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(random.randint(0, 1))
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args['gpu'])
+    # os.environ["CUDA_VISIBLE_DEVICES"] = str(random.randint(0, 1))
     with tf.Session() as sess:
 
         # env = gym.make(args['env'])
@@ -541,8 +290,6 @@ def main(args):
                                float(args['gamma']),
                                actor.get_num_trainable_vars())
 
-        actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
-
         if args['use_gym_monitor']:
             if not args['render_env']:
                 env = wrappers.Monitor(
@@ -550,7 +297,7 @@ def main(args):
             else:
                 env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
-        train(sess, env, args, actor, critic, actor_noise)
+        train(sess, env, args, actor, critic)
 
         if args['use_gym_monitor']:
             env.close()
@@ -577,12 +324,13 @@ if __name__ == '__main__':
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
+    parser.add_argument('--gpu', help='gpu index', default='0')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=1001)
+    parser.set_defaults(max_episodes=2001)
     parser.set_defaults(max_episodes_len=80000)
     # parser.set_defaults(minibatch_size=64)
     parser.set_defaults(minibatch_size=128)

@@ -18,7 +18,7 @@ class PathFollowingV2(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 16
+    error_bound = 9
     history_length = 6
 
     def _reset(self):
@@ -160,13 +160,15 @@ class PathFollowingV2(gym.Env):
         # speed_reward = 0.01 / np.square(float(self.car.uk[0]) + 0.005)
         # error_reward = np.square(error) * 2
         error_reward = np.square(error) * 50
-        speed_reward = -np.log(speed + 5.0E-5) * 1.0E2
-        # speed_reward = -np.log(speed + 1.0E-1) * 5.0E2
+        # speed_reward = -np.log(speed + 5.0E-5) * 1.0E2
+        # speed_reward = 2.0E1 / (np.square(speed) + 5.0E-3) - 50 # 待测试
+        speed_reward = -np.log(speed + 1.0E-1) * 5.0E2
         if speed_reward < 0:
             speed_reward = 0
 
 
         reward = speed_reward + error_reward
+        reward /= 5000.0
         self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
 
