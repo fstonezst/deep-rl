@@ -114,7 +114,7 @@ def train(sess, env, args, actor, critic):
                     orientationNoise = 0
                 while abs(orientationNoise) > abs(orientation) * oriNoiseRate:
                     orientationNoise /= 2
-                if abs(rotation) <= 1:
+                if abs(rotation) <= 0.01:
                     rotationNoise = 0
                 while abs(rotationNoise) > abs(rotation) * rotNoiseRate:
                     rotationNoise /= 2
