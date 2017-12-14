@@ -67,7 +67,7 @@ def train(sess, env, args, actor, critic):
 
     totalTime = 0
     ave_error = 0
-    exp_time = 990
+    exp_time = int(args['max_episodes'])-10
     oriNoiseRate, rotNoiseRate = 1 , 0.8
 
 
@@ -225,26 +225,26 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    if i % 100 == 0 and i != 0:
-                        with open('movePath'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(moveStorex,moveStorey):
-                                csv_writer.writerow([x,y])
-
-                        with open('wheelPath'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(wheelx,wheely):
-                                csv_writer.writerow([x,y])
-
-                        with open('action'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(action_r,action_s):
-                                csv_writer.writerow([x,y])
-
-                        with open('reward'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(speed_reward,error_reward):
-                                csv_writer.writerow([x,y])
+                    # if i % 100 == 0 and i != 0:
+                    #     with open('movePath'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(moveStorex,moveStorey):
+                    #             csv_writer.writerow([x,y])
+                    #
+                    #     with open('wheelPath'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(wheelx,wheely):
+                    #             csv_writer.writerow([x,y])
+                    #
+                    #     with open('action'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(action_r,action_s):
+                    #             csv_writer.writerow([x,y])
+                    #
+                    #     with open('reward'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(speed_reward,error_reward):
+                    #             csv_writer.writerow([x,y])
 
                 if j > 0:
                     ave_error = info.get("avgError")
