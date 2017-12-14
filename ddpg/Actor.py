@@ -52,7 +52,7 @@ class ActorNetwork(object):
             self.network_params) + len(self.target_network_params)
 
     def create_actor_network(self):
-        times = 2
+        times = 3
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
         net = tflearn.dropout(net, 0.5)
