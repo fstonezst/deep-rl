@@ -1,6 +1,5 @@
 import tensorflow as tf
 import tflearn
-import math
 
 
 class ActorNetwork(object):
@@ -54,29 +53,21 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         times = 2
-        N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
-        DROPOU_KEEP_PROB = 0.5
         inputs = tflearn.input_data(shape=[None, self.s_dim])
+        net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
+        net = tflearn.dropout(net, 0.5)
 
-        w_init = tflearn.initializations.uniform(minval=-1 / math.sqrt(self.s_dim), maxval=1 / math.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu', regularizer='L2', weights_init=w_init,
-                                      bias_init=w_init)
-        net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
-        w_init = tflearn.initializations.uniform(minval=-1 / math.sqrt(N_HIDDEN_1 * DROPOU_KEEP_PROB),
-                                                 maxval=1 / math.sqrt(N_HIDDEN_1 * DROPOU_KEEP_PROB))
-        net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu', regularizer='L2', weights_init=w_init,
-                                      bias_init=w_init)
-        net = tflearn.dropout(net, DROPOU_KEEP_PROB)
+        net = tflearn.fully_connected(net, 300 * times, activation='relu',regularizer='L2')
+        net = tflearn.dropout(net, 0.5)
+
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
-        b_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
+        w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
-            net, self.a_dim, activation='tanh', weights_init=w_init, bias_init=b_init)
-
+            net, self.a_dim, activation='tanh', weights_init=w_init)
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
         return inputs, out, scaled_out
