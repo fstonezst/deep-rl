@@ -54,28 +54,31 @@ class CriticNetwork(object):
 
     def create_critic_network(self):
         times = 3
+        N_HIDDEN_1, N_HIDDEN_2  = 400 * times, 300 * times
+        DROPOU_KEEP_PROB= 0.5
+
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 400 * times, activation='relu',regularizer='L2')
-        net = tflearn.dropout(net, 0.5)
+        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2')
+        net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 300 * times, regularizer='L2', activation='relu')
-        t1 = tflearn.dropout(t1, 0.5)
+        t1 = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
+        t1 = tflearn.dropout(t1, DROPOU_KEEP_PROB)
         t1 = tflearn.layers.normalization.batch_normalization(t1)
 
-        t2 = tflearn.fully_connected(action, 300 * times, regularizer='L2', activation='relu')
-        t2 = tflearn.dropout(t2, 0.5)
+        t2 = tflearn.fully_connected(action, N_HIDDEN_2, regularizer='L2', activation='relu')
+        t2 = tflearn.dropout(t2, DROPOU_KEEP_PROB)
         t2 = tflearn.layers.normalization.batch_normalization(t2)
 
         # net = tflearn.activation(
         #     tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
         t1, t2 = tflearn.activations.linear(t1), tflearn.activations.linear(t2)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='elemwise_sum')
-        net = tflearn.fully_connected(net, 300 * times, regularizer='L2', activation='relu')
-        net = tflearn.dropout(net, 0.5)
+        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
+        net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # linear layer connected to 1 output representing Q(s,a)
