@@ -73,6 +73,9 @@ def train(sess, env, args, actor, critic):
 
     last_loss = 4.0E8
     ave_err = 4
+    count = 10
+    env.setCarMess(500)
+    print "===================="+str(env.car.mess)+"================="
 
 
     for i in range(int(args['max_episodes'])):
@@ -134,6 +137,11 @@ def train(sess, env, args, actor, critic):
                 # a = np.array([orientation, rotation])
                 a = dirOut + noise
             else:
+                count -= 1
+                if count == 0:
+                    env.setCarMess(500 + random.randint(100, 500))
+                    print "===================="+str(env.car.mess)+"================="
+                    count = 10
                 a = dirOut
 
             # total_noise += noise
@@ -338,7 +346,8 @@ if __name__ == '__main__':
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
 
-    parser.set_defaults(use_gym_monitor=True)
+    parser.set_defaults(use_gym_monitor=False)
+    # parser.set_defaults(use_gym_monitor=True)
     parser.set_defaults(max_episodes=5.0E3)
     parser.set_defaults(max_episodes_len=1.0E5)
     # parser.set_defaults(minibatch_size=64)

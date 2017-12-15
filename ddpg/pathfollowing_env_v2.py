@@ -104,6 +104,9 @@ class PathFollowingV2(gym.Env):
         self._seed()
         self._reset()
 
+    def setCarMess(self, m):
+        self.car.setMess(m)
+
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
