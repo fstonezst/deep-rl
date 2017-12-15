@@ -1,6 +1,7 @@
 .idea/
 *.pyc
-ddpg/results/
+ddpg/results/gym_ddpg
+ddpg/results/log
 
 # Compiled Lua sources
 luac.out
