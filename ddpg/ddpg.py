@@ -308,11 +308,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
-    parser.add_argument('--actor-lr', help='actor network learning rate', default=0.0001)
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=0.001)
+    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
-    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1000000)
+    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
@@ -330,8 +330,8 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=20001)
-    parser.set_defaults(max_episodes_len=100000)
+    parser.set_defaults(max_episodes=5.0E3)
+    parser.set_defaults(max_episodes_len=1.0E5)
     # parser.set_defaults(minibatch_size=64)
     parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
