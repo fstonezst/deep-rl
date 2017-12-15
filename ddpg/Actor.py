@@ -53,16 +53,21 @@ class ActorNetwork(object):
             self.network_params) + len(self.target_network_params)
 
     def create_actor_network(self):
-        times = 2
+        times = 3
         N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
         DROPOU_KEEP_PROB = 0.5
         inputs = tflearn.input_data(shape=[None, self.s_dim])
 
-        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu', regularizer='L2')
+        w_init = tflearn.initializations.uniform(minval=-1 / math.sqrt(self.s_dim), maxval=1 / math.sqrt(self.s_dim))
+        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu', regularizer='L2', weights_init=w_init,
+                                      bias_init=w_init)
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
-        net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu', regularizer='L2')
+        w_init = tflearn.initializations.uniform(minval=-1 / math.sqrt(N_HIDDEN_1 * DROPOU_KEEP_PROB),
+                                                 maxval=1 / math.sqrt(N_HIDDEN_1 * DROPOU_KEEP_PROB))
+        net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu', regularizer='L2', weights_init=w_init,
+                                      bias_init=w_init)
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 

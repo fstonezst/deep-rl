@@ -54,24 +54,27 @@ class CriticNetwork(object):
         self.action_grads = tf.gradients(self.out, self.action)
 
     def create_critic_network(self):
-        times = 2
+        times = 3
         N_HIDDEN_1, N_HIDDEN_2  = 400 * times, 300 * times
         DROPOU_KEEP_PROB= 0.5
 
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
 
-        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2')
+        w_init = tflearn.initializations.uniform(minval=-1/math.sqrt(self.s_dim), maxval=1/math.sqrt(self.s_dim))
+        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2', weights_init=w_init, bias_init=w_init)
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
+        w_init = tflearn.initializations.uniform(minval=-1/math.sqrt(N_HIDDEN_1 * DROPOU_KEEP_PROB), maxval=1/math.sqrt(N_HIDDEN_1 * DROPOU_KEEP_PROB))
+        t1 = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weights_init=w_init, bias_init=w_init)
         t1 = tflearn.dropout(t1, DROPOU_KEEP_PROB)
         t1 = tflearn.layers.normalization.batch_normalization(t1)
 
-        t2 = tflearn.fully_connected(action, N_HIDDEN_2, regularizer='L2', activation='relu')
+        w_init = tflearn.initializations.uniform(minval=-1/math.sqrt(self.a_dim), maxval=1/math.sqrt(self.a_dim))
+        t2 = tflearn.fully_connected(action, N_HIDDEN_2, regularizer='L2', activation='relu', weights_init=w_init, bias_init=w_init)
         t2 = tflearn.dropout(t2, DROPOU_KEEP_PROB)
         t2 = tflearn.layers.normalization.batch_normalization(t2)
 
@@ -79,8 +82,8 @@ class CriticNetwork(object):
         #     tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
         t1, t2 = tflearn.activations.linear(t1), tflearn.activations.linear(t2)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='elemwise_sum')
-
-        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
+        w_init = tflearn.initializations.uniform(minval=-1/math.sqrt(N_HIDDEN_2 * DROPOU_KEEP_PROB), maxval=1/math.sqrt(N_HIDDEN_2 * DROPOU_KEEP_PROB))
+        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weights_init=w_init, bias_init=w_init)
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
