@@ -330,8 +330,8 @@ if __name__ == '__main__':
     # parser.set_defaults(render_env=True)
 
     parser.set_defaults(use_gym_monitor=True)
-    parser.set_defaults(max_episodes=20001)
-    parser.set_defaults(max_episodes_len=100000)
+    parser.set_defaults(max_episodes=5.0E5)
+    parser.set_defaults(max_episodes_len=1.0E8)
     # parser.set_defaults(minibatch_size=64)
     parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')

@@ -168,7 +168,7 @@ class PathFollowingV2(gym.Env):
 
 
         reward = speed_reward + error_reward
-        reward /= 5000.0
+        reward /= 4000.0
         self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
 

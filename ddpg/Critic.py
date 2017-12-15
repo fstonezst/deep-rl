@@ -1,6 +1,5 @@
 import tensorflow as tf
 import tflearn
-import math
 
 class CriticNetwork(object):
     """
@@ -60,22 +59,17 @@ class CriticNetwork(object):
 
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-
-        # net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2')
-        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation=self.swish, regularizer='L2')
+        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2')
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-
-        # t1 = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
-        t1 = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation=self.swish)
+        t1 = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
         t1 = tflearn.dropout(t1, DROPOU_KEEP_PROB)
         t1 = tflearn.layers.normalization.batch_normalization(t1)
 
-        # t2 = tflearn.fully_connected(action, N_HIDDEN_2, regularizer='L2', activation='relu')
-        t2 = tflearn.fully_connected(action, N_HIDDEN_2, regularizer='L2', activation=self.swish)
+        t2 = tflearn.fully_connected(action, N_HIDDEN_2, regularizer='L2', activation='relu')
         t2 = tflearn.dropout(t2, DROPOU_KEEP_PROB)
         t2 = tflearn.layers.normalization.batch_normalization(t2)
 
@@ -83,19 +77,15 @@ class CriticNetwork(object):
         #     tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
         t1, t2 = tflearn.activations.linear(t1), tflearn.activations.linear(t2)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='elemwise_sum')
-        # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
-        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation=self.swish)
+        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu')
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
-        out = tflearn.fully_connected(net, 1, weights_init=w_init, bias_init=w_init)
+        out = tflearn.fully_connected(net, 1, weights_init=w_init)
         return inputs, action, out
-
-    def swish(self,x):
-        return x * tflearn.activations.sigmoid(x)
 
     def train(self, inputs, action, predicted_q_value):
         # return self.sess.run([self.loss_summary, self.out, self.optimize], feed_dict={
