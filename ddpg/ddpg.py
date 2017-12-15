@@ -71,6 +71,10 @@ def train(sess, env, args, actor, critic):
     oriNoiseRate, rotNoiseRate = 1 , 0.8
 
 
+    last_loss = 4.0E8
+    ave_err = 4
+
+
     for i in range(int(args['max_episodes'])):
         if totalTime > int(args['max_episodes_len']):
             break
@@ -81,6 +85,7 @@ def train(sess, env, args, actor, critic):
         ep_ave_max_q = 0
         ave_diff = 0
         total_loss = 0
+
 
         # DELTA  The rate of change (time)
         # SIGMA  Volatility of the stochastic processes
@@ -105,7 +110,8 @@ def train(sess, env, args, actor, critic):
             # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
-            if i < exp_time:
+            # if i < exp_time:
+            if last_loss > 1.0E5 or ave_err > 1:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -249,7 +255,8 @@ def train(sess, env, args, actor, critic):
                 if j > 0:
                     ave_error = info.get("avgError")
                     # print max(total_noise0), max(total_noise1)
-                    if i < exp_time:
+                    # if i < exp_time:
+                    if last_loss > 1.0E5 or ave_err > 1:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     # print(
@@ -258,6 +265,8 @@ def train(sess, env, args, actor, critic):
                     print(
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), ave_error, sum(speed)/float(j), max(speed)))
+                last_loss = total_loss / float(j)
+                ave_err = ave_error
                 break
     writer.close()
 
