@@ -6,7 +6,7 @@ import numpy as np
 class AGV:
     MAX_SPEED = 2 * np.pi
     MAX_ANGLE, MIN_ANGLE = np.pi * (170.0 / 180.0), np.pi * (10.0 / 180.0)
-    MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
+    MAX_ORIENTATION, MAX_ROTATION = 1, 600
     count = 0
 
     def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
@@ -43,6 +43,9 @@ class AGV:
         self.J2 = np.matrix([[self.rs, 0, 0], [0, self.rf, 0], [0, 0, self.rf]])
         self.P = np.matrix([1, 0, 0]).T
 
+    def setMess(self, m):
+        if m > 0 :
+            self.mess = m
 
     def countHB(self):
         return np.dot(np.dot(self.getSumB().T, self.M),
@@ -240,10 +243,30 @@ class AGV:
 #     # car.control(np.matrix([[1], [2]]))
 #     # car.controlInput(np.matrix([5, 2000]))
 #     if i < 50:
-#         car.controlInput(np.matrix([-0.05, 50]))
+#         car.controlInput(np.matrix([0.05, 50]))
 #     else:
 #         car.controlInput(np.matrix([-0.05, 70]))
 #     B.append(float(car.q[2]))
+#     print car.uk[0],car.q[3]
+#         # car.controlInput(np.matrix([0,0]))
+
+# car = AGV(mess=1000)
+# car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
+# pathx1, pathy1 = [], []
+# centerx1, centery1 = [], []
+# B1 = []
+# for i in range(100):
+#     pathx1.append(car.q[0])
+#     pathy1.append(car.q[1])
+#     centerx1.append(car.wheelPos[0])
+#     centery1.append(car.wheelPos[1])
+#     # car.control(np.matrix([[1], [2]]))
+#     # car.controlInput(np.matrix([5, 2000]))
+#     if i < 50:
+#         car.controlInput(np.matrix([0.1, 50]))
+#     else:
+#         car.controlInput(np.matrix([-0.1, -50]))
+#     B1.append(float(car.q[2]))
 #     print car.uk[0],car.q[3]
 #         # car.controlInput(np.matrix([0,0]))
 #
@@ -254,6 +277,9 @@ class AGV:
 # ax.plot(pathx,pathy,'r-o')
 # ax.plot(centerx,centery,'b-*')
 # ax1.plot(B,'b-*')
+# ax.plot(pathx1,pathy1,'r-*')
+# ax.plot(centerx1,centery1,'b-o')
+# ax1.plot(B1,'y-*')
 #
 # plt.show()
 

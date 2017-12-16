@@ -22,7 +22,7 @@ class PathFollowingV2(gym.Env):
     history_length = 6
 
     def _reset(self):
-        self.car = AGV()
+        self.car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
         self.totalError = 0
         self.time = 0
         self.error_record_buffer = [0] * PathFollowingV2.history_length
@@ -45,7 +45,7 @@ class PathFollowingV2(gym.Env):
         return np.array(self.state)
 
     def __init__(self):
-        self.car = AGV()
+        self.car = AGV(mess=1000, w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
         self.totalError = 0
         self.time = 0
 
@@ -103,6 +103,9 @@ class PathFollowingV2(gym.Env):
 
         self._seed()
         self._reset()
+
+    def setCarMess(self, m):
+        self.car.setMess(m)
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -168,7 +171,7 @@ class PathFollowingV2(gym.Env):
 
 
         reward = speed_reward + error_reward
-        reward /= 4000.0
+        # reward /= 5000.0
         self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
 
