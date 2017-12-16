@@ -18,11 +18,12 @@ class PathFollowingV2(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 9
+    error_bound = 2
     history_length = 6
 
     def _reset(self):
-        self.car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
+        # self.car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
+        self.car = AGV()
         self.totalError = 0
         self.time = 0
         self.error_record_buffer = [0] * PathFollowingV2.history_length
@@ -45,7 +46,8 @@ class PathFollowingV2(gym.Env):
         return np.array(self.state)
 
     def __init__(self):
-        self.car = AGV(mess=1000, w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
+        # self.car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
+        self.car = AGV()
         self.totalError = 0
         self.time = 0
 
@@ -134,7 +136,9 @@ class PathFollowingV2(gym.Env):
         self.u1_record_buffer.append(float(self.car.uk[1]))
 
         # error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
-        error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
+        # error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
+        error = np.sqrt(np.square(wheelx) + np.square(wheely)) - self.r
+
 
         self.totalError += abs(error)
         self.error_record_buffer.append(error)
@@ -162,7 +166,9 @@ class PathFollowingV2(gym.Env):
         diff1, diff2 = actionDiff[0], actionDiff[1]
         # speed_reward = 0.01 / np.square(float(self.car.uk[0]) + 0.005)
         # error_reward = np.square(error) * 2
-        error_reward = np.square(error) * 50
+
+        # error_reward = np.square(error) * 50
+        error_reward = np.square(error * 3) * 2.0E2
         # speed_reward = -np.log(speed + 5.0E-5) * 1.0E3
         speed_reward = 2.0E1 / (np.square(speed) + 5.0E-3) - 50 # 待测试
         # speed_reward = -np.log(speed + 1.0E-1) * 5.0E2

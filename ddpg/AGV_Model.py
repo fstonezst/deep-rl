@@ -6,7 +6,7 @@ import numpy as np
 class AGV:
     MAX_SPEED = 2 * np.pi
     MAX_ANGLE, MIN_ANGLE = np.pi * (170.0 / 180.0), np.pi * (10.0 / 180.0)
-    MAX_ORIENTATION, MAX_ROTATION = 1, 600
+    MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
     count = 0
 
     def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],

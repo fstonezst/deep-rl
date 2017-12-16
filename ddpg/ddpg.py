@@ -72,9 +72,9 @@ def train(sess, env, args, actor, critic):
 
 
     last_loss = 4.0E8
+    ERROR_EXPECT, LOSS_EXPECT = 0.1, 1.0E4
     ave_err = 4
-    count = 10
-    env.setCarMess(500)
+    count = 15
     print "===================="+str(env.car.mess)+"================="
 
 
@@ -114,7 +114,7 @@ def train(sess, env, args, actor, critic):
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
             # if i < exp_time:
-            if last_loss > 1.0E5 or ave_err > 1:
+            if last_loss > LOSS_EXPECT or ave_err > ERROR_EXPECT:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -137,11 +137,12 @@ def train(sess, env, args, actor, critic):
                 # a = np.array([orientation, rotation])
                 a = dirOut + noise
             else:
-                count -= 1
-                if count == 0:
-                    env.setCarMess(500 + random.randint(100, 500))
-                    print "===================="+str(env.car.mess)+"================="
-                    count = 10
+                # count -= 1
+                # if count == 0:
+                #     env.setCarMess(500 + random.randint(100, 500))
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [1.3, 0.03, 0.03], [15,1.8,1.8], 14
+                #     print "===================="+str(env.car.mess)+"================="
+                #     count = 100
                 a = dirOut
 
             # total_noise += noise
@@ -264,7 +265,7 @@ def train(sess, env, args, actor, critic):
                     ave_error = info.get("avgError")
                     # print max(total_noise0), max(total_noise1)
                     # if i < exp_time:
-                    if last_loss > 1.0E5 or ave_err > 1:
+                    if last_loss > LOSS_EXPECT or ave_err > ERROR_EXPECT:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     # print(
