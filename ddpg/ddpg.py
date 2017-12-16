@@ -73,8 +73,7 @@ def train(sess, env, args, actor, critic):
 
     last_loss = 4.0E8
     ave_err = 4
-    count = 10
-    env.setCarMess(500)
+    count = 15
     print "===================="+str(env.car.mess)+"================="
 
 
@@ -140,8 +139,9 @@ def train(sess, env, args, actor, critic):
                 count -= 1
                 if count == 0:
                     env.setCarMess(500 + random.randint(100, 500))
+                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [1.3, 0.03, 0.03], [15,1.8,1.8], 14
                     print "===================="+str(env.car.mess)+"================="
-                    count = 10
+                    count = 100
                 a = dirOut
 
             # total_noise += noise

@@ -22,6 +22,7 @@ class PathFollowingV2(gym.Env):
     history_length = 6
 
     def _reset(self):
+        # self.car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
         self.car = AGV()
         self.totalError = 0
         self.time = 0
@@ -45,6 +46,7 @@ class PathFollowingV2(gym.Env):
         return np.array(self.state)
 
     def __init__(self):
+        # self.car = AGV(mess=1000,w_mess=[15,1.8,1.8],Ir=[1.3, 0.03, 0.03], Ip1=14)
         self.car = AGV()
         self.totalError = 0
         self.time = 0
