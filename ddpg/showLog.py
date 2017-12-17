@@ -37,17 +37,18 @@ def show(i):
 
 
     fig = plt.figure()
-    ax = fig.add_subplot(2,2,1)
-    ax1 = fig.add_subplot(2,2,2)
-    ax2 = fig.add_subplot(2,2,3)
-    ax3 = fig.add_subplot(2,2,4)
+    # ax = fig.add_subplot(2,2,1)
+    ax = fig.add_subplot(1,2,1)
+    # ax1 = fig.add_subplot(2,2,2)
+    ax2 = fig.add_subplot(2,2,2)
+    # ax3 = fig.add_subplot(2,2,4)
     ax.plot(moveStorex,moveStorey,'b-o',label='move_path')
     ax.plot(wheelx, wheely,'r-*',label='wheel_path')
     ax2.plot(action_r,'y-o',label='dir')
-    ax1.plot(action_s,'r-*',label='speed')
-    ax3.plot(error_reward,'r-o', label='error_reward')
-    ax3.plot(speed_reward,'b-*', label='speed_reward')
-    ax3.plot(total_reward,'y-*', label='total_reward')
+    # ax1.plot(action_s,'r-*',label='speed')
+    # ax3.plot(error_reward,'r-o', label='error_reward')
+    # ax3.plot(speed_reward,'b-*', label='speed_reward')
+    # ax3.plot(total_reward,'y-*', label='total_reward')
     cir1 = Circle(xy=(0.0, 0.0), radius=10, alpha=0.4)
     ax.add_patch(cir1)
     # ax.plot(cir1, 'y-')
@@ -57,4 +58,4 @@ def show(i):
 if __name__=="__main__":
     import sys
     # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    show(2800)
+    show(227)

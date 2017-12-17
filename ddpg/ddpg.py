@@ -51,6 +51,7 @@ def build_summaries():
 # ===========================
 
 def train(sess, env, args, actor, critic):
+    saver, saverCount = tf.train.Saver(), 0
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
@@ -75,6 +76,9 @@ def train(sess, env, args, actor, critic):
     ave_err = 4
     count = 15
     print "===================="+str(env.car.mess)+"================="
+    env.setCarMess(500)
+    saver.save(sess, "model"+str(saverCount)+".ckpt")
+    saverCount += 1
 
 
     for i in range(int(args['max_episodes'])):
@@ -144,6 +148,8 @@ def train(sess, env, args, actor, critic):
                 a = dirOut + noise
             else:
                 if count == 0:
+                    saver.save(sess, "model"+str(saverCount)+".ckpt")
+                    saverCount += 1
                     env.setCarMess(500 + random.randint(100, 500))
                     env.car.Ir, env.car.w_mss, env.car.Ip1 = [1.3, 0.03, 0.03], [15,1.8,1.8], 14
                     print "===================="+str(env.car.mess)+"================="
@@ -286,46 +292,113 @@ def train(sess, env, args, actor, critic):
     writer.close()
 
 
+def pidControl(env):
+    from PIDControl import PID
+    P, I, D = -0.001, 0.0, -0.1
+    # P, I, D = -0.001, -0.001, -0.05
+    pid = PID(P, I, D)
+    pid.SetPoint = 0.0
+    s = env.reset()
+    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20,2.3,2.3], 10
+    # env.car.setMess(1000)
+    feedBack = s[env.history_length-1]
+    print "====="+str(feedBack)+"====="
+
+    for i in range(env.max_time):
+        pid.update(feedBack)
+        outPut = pid.output
+        if outPut > env.car.MAX_ORIENTATION:
+            outPut = env.car.MAX_ORIENTATION
+        elif outPut < -env.car.MAX_ORIENTATION:
+            outPut = -env.car.MAX_ORIENTATION
+
+        # env.car.setSpeed(1)
+        s, r, terminal, info = env.step(np.array([[outPut, 5]]))
+        if terminal or i == env.max_time-1:
+            moveStorex, moveStorey = info.get("moveStore")[0], info.get("moveStore")[1]
+            wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+            action_r, action_s = info.get("action")[0], info.get("action")[1]
+            speed_reward, error_reward = info.get("reward")[0], info.get("reward")[1]
+
+
+            with open('movePath' + str(i) + '.csv', 'wb') as f:
+                csv_writer = csv.writer(f)
+                for x, y in zip(moveStorex, moveStorey):
+                    csv_writer.writerow([x, y])
+
+            with open('wheelPath' + str(i) + '.csv', 'wb') as f:
+                csv_writer = csv.writer(f)
+                for x, y in zip(wheelx, wheely):
+                    csv_writer.writerow([x, y])
+
+            with open('action' + str(i) + '.csv', 'wb') as f:
+                csv_writer = csv.writer(f)
+                for x, y in zip(action_r, action_s):
+                    csv_writer.writerow([x, y])
+
+            with open('reward' + str(i) + '.csv', 'wb') as f:
+                csv_writer = csv.writer(f)
+                for x, y in zip(speed_reward, error_reward):
+                    csv_writer.writerow([x, y])
+
+            break
+        else:
+            feedBack = s[env.history_length-1]
+
+
+
 def main(args):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args['gpu'])
     # os.environ["CUDA_VISIBLE_DEVICES"] = str(random.randint(0, 1))
-    with tf.Session() as sess:
 
-        # env = gym.make(args['env'])
-        # env = PathFollowing()
-        env = PathFollowingV2()
-        np.random.seed(int(args['random_seed']))
-        tf.set_random_seed(int(args['random_seed']))
-        env.seed(int(args['random_seed']))
+    if args['isPID'] == 1:
+        with tf.Session() as sess:
 
-        state_dim = len(env.reset()) #.shape[1] #8  # env.observation_space.shape[0]
-        # state_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
-        action_bound = env.action_space.high
-        # Ensure action bound is symmetric
-        # assert (env.action_space.high == -env.action_space.low)
+            # env = gym.make(args['env'])
+            # env = PathFollowing()
+            env = PathFollowingV2()
+            np.random.seed(int(args['random_seed']))
+            tf.set_random_seed(int(args['random_seed']))
+            env.seed(int(args['random_seed']))
 
-        actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
-                             float(args['actor_lr']), float(args['tau']))
+            state_dim = len(env.reset()) #.shape[1] #8  # env.observation_space.shape[0]
+            # state_dim = env.observation_space.shape[0]
+            action_dim = env.action_space.shape[0]
+            action_bound = env.action_space.high
+            # Ensure action bound is symmetric
+            # assert (env.action_space.high == -env.action_space.low)
 
-        critic = CriticNetwork(sess, state_dim, action_dim,
-                               float(args['critic_lr']), float(args['tau']),
-                               float(args['gamma']),
-                               actor.get_num_trainable_vars())
+            actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+                                 float(args['actor_lr']), float(args['tau']))
 
-        if args['use_gym_monitor']:
-            if not args['render_env']:
-                env = wrappers.Monitor(
-                    env, args['monitor_dir'], video_callable=False, force=True)
-            else:
-                env = wrappers.Monitor(env, args['monitor_dir'], force=True)
+            critic = CriticNetwork(sess, state_dim, action_dim,
+                                   float(args['critic_lr']), float(args['tau']),
+                                   float(args['gamma']),
+                                   actor.get_num_trainable_vars())
 
-        train(sess, env, args, actor, critic)
+            if args['use_gym_monitor']:
+                if not args['render_env']:
+                    env = wrappers.Monitor(
+                        env, args['monitor_dir'], video_callable=False, force=True)
+                else:
+                    env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
+            train(sess, env, args, actor, critic)
+            tf.train.Saver.save(sess, "model.ckpt")
         if args['use_gym_monitor']:
             env.close()
             # env.monitor.close()
+    else:
+        env = PathFollowingV2()
+        env.seed(int(args['random_seed']))
+        pidControl(env)
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
@@ -349,6 +422,7 @@ if __name__ == '__main__':
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
     parser.add_argument('--gpu', help='gpu index', default='0')
+    parser.add_argument('--isPID', help='PID control or RL control', default=0)
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)

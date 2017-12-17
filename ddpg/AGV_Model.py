@@ -9,7 +9,9 @@ class AGV:
     MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
     count = 0
 
-    def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
+    # def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
+    #              l=[1.22, 0.268, 0.268]):
+    def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[0.61, 0.05, 0.05],
                  l=[1.22, 0.268, 0.268]):
         self.wheelPos = [10, 0]
         self.uk = np.matrix([[0.0], [0.0]])
@@ -42,6 +44,10 @@ class AGV:
         self.If = np.matrix([[self.Ir[0], 0, 0], [0, self.Ir[1], 0], [0, 0, self.Ir[2]]])
         self.J2 = np.matrix([[self.rs, 0, 0], [0, self.rf, 0], [0, 0, self.rf]])
         self.P = np.matrix([1, 0, 0]).T
+
+    def setSpeed(self, speed):
+        if speed < self.MAX_SPEED and speed >= 0:
+            self.uk[0] = speed
 
     def setMess(self, m):
         if m > 0 :

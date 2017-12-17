@@ -18,7 +18,7 @@ class PathFollowingV2(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 2
+    error_bound = 5
     history_length = 6
 
     def _reset(self):
