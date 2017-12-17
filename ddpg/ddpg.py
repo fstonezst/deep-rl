@@ -71,7 +71,7 @@ def train(sess, env, args, actor, critic):
     oriNoiseRate, rotNoiseRate = 1 , 0.8
 
 
-    last_loss = 4.0E8
+    last_loss, last_times = 4.0E8, 0
     ave_err = 4
 
 
@@ -111,7 +111,7 @@ def train(sess, env, args, actor, critic):
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
             # if i < exp_time:
-            if last_loss > 1.0E5 or ave_err > 0.5:
+            if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -231,7 +231,7 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    if (i % 100 == 0 and 0 < i < 300) or (i % 50 == 0 and 300 <= i < 500) or (i % 10 == 0 and 500 <= i):
+                    if (i % 100 == 0 and 1000 <= i):
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
@@ -256,7 +256,7 @@ def train(sess, env, args, actor, critic):
                     ave_error = info.get("avgError")
                     # print max(total_noise0), max(total_noise1)
                     # if i < exp_time:
-                    if last_loss > 1.0E5 or ave_err > 1:
+                    if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     # print(
@@ -267,6 +267,7 @@ def train(sess, env, args, actor, critic):
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), ave_error, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
                 ave_err = ave_error
+                last_times = j
                 break
     writer.close()
 
@@ -338,7 +339,8 @@ if __name__ == '__main__':
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
 
-    parser.set_defaults(use_gym_monitor=True)
+    # parser.set_defaults(use_gym_monitor=True)
+    parser.set_defaults(use_gym_monitor=False)
     parser.set_defaults(max_episodes=5.0E3)
     parser.set_defaults(max_episodes_len=1.0E5)
     # parser.set_defaults(minibatch_size=64)

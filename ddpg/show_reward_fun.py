@@ -4,7 +4,8 @@ from AGV_Model import AGV
 from pathfollowing_env_v2 import PathFollowingV2
 import numpy as np
 def error_fun(error):
-    error_reward = np.square(error) * 50
+    # error_reward = np.square(error) * 50
+    error_reward = np.square(error * 3) * 1.0E2
     return error_reward
 def speed_fun(speed):
     # speed_reward = -np.log(speed + 5.0E-30) * 1.0E2
