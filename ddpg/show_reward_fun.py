@@ -4,20 +4,17 @@ from AGV_Model import AGV
 from pathfollowing_env_v2 import PathFollowingV2
 import numpy as np
 def error_fun(error):
-    # error_reward = np.square(error) * 50
-    error_reward = np.square(error * 3) * 1.0E2
+    error_reward = np.square(error) * 6.0E-1
+    # error_reward = np.square(error) * 1.0E0
     return error_reward
+    # return 0
 def speed_fun(speed):
-    # speed_reward = -np.log(speed + 5.0E-30) * 1.0E2
-    # 2 * np.square(speed)
-    # speed_reward = -np.log(speed + 5.0E-5) * 1.0E2
-    # speed_reward = 1.0E2 / (np.square(speed) + 3.0E-2) - 50
-    # speed_reward = 2.0E1 / (np.square(speed) + 6.0E-3) - 50 # 待测试
-    speed_reward = 2.0E1 / (np.square(speed) + 5.0E-3) - 50 # 待测试
-    # speed_reward = -np.log(speed + 1.0E-1) * 5.0E2
+    # speed_reward = 1.0E-1 / (speed + 1.0E-1)   # 待测试
+
+    speed_reward = 4E-2 / (speed + 4.0E-2)  # 待测试
+    # speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
     return speed_reward
-    # return 0.1 / (np.square(idddpg/show_reward_fun.py:13dpg/show_reward_fun.py:13) + 0.001)
-    # return 1 / (i + 0.005)ddpg/show_reward_fun.py:13
+    # return 0
 
 # step, start, end = 0.01, 0, 9 #AGV.MAX_SPEED
 # scalEnd = int(end * (1 / step))
@@ -36,9 +33,10 @@ def speed_fun(speed):
 
 from mpl_toolkits.mplot3d import Axes3D
 
-step, start, end = 0.05, 0, 2 #AGV.MAX_SPEED
+# step, start, end = 0.05, 0, 1 #AGV.MAX_SPEED
+step, start, end = 0.1, 0.0, 1 #AGV.MAX_SPEED
 X = np.arange(start, end, step)
-step, start, end = 0.1 , 0, 4 #PathFollowingV2.error_bound
+step, start, end = 0.1, 0.0, 1 #PathFollowingV2.error_bound
 Y = np.arange(start, end, step)
 X, Y = np.meshgrid(X, Y)
 Z = np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y))

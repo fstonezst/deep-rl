@@ -73,7 +73,7 @@ def train(sess, env, args, actor, critic):
 
     last_loss, last_times = 4.0E8, 0
     ave_err = 4
-    count = 15
+    count = 10
     print "===================="+str(env.car.mess)+"================="
 
 
@@ -101,11 +101,13 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
+        if last_loss > 1.0E5 or ave_err > 0.1 or last_times < env.max_time or i < 1000:
            isConvergence = False
+           count = 10
         else:
             count -= 1
 
+        lastReward = 200
         for j in range(4000):
             if args['render_env']:
                 env.render()
@@ -120,7 +122,7 @@ def train(sess, env, args, actor, critic):
 
             # if i < exp_time:
             # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
-            if not isConvergence:
+            if not isConvergence or lastReward > 100:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -145,9 +147,9 @@ def train(sess, env, args, actor, critic):
             else:
                 if count == 0:
                     env.setCarMess(500 + random.randint(100, 500))
-                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [1.3, 0.03, 0.03], [15,1.8,1.8], 14
+                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
                     print "===================="+str(env.car.mess)+"================="
-                    count = 30
+                    count = 10
                 a = dirOut
 
             # total_noise += noise
@@ -156,7 +158,7 @@ def train(sess, env, args, actor, critic):
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
-
+            lastReward = r
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
             if replay_buffer.size() > int(args['minibatch_size']):
@@ -245,32 +247,33 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    if (i % 100 == 0 and 1000 <= i):
-                        with open('movePath'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(moveStorex,moveStorey):
-                                csv_writer.writerow([x,y])
-
-                        with open('wheelPath'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(wheelx,wheely):
-                                csv_writer.writerow([x,y])
-
-                        with open('action'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(action_r,action_s):
-                                csv_writer.writerow([x,y])
-
-                        with open('reward'+str(i)+'.csv','wb') as f:
-                            csv_writer = csv.writer(f)
-                            for x,y in zip(speed_reward,error_reward):
-                                csv_writer.writerow([x,y])
+                    # if (i % 50 == 0 and 500 <= i):
+                    #     with open('movePath'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(moveStorex,moveStorey):
+                    #             csv_writer.writerow([x,y])
+                    #
+                    #     with open('wheelPath'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(wheelx,wheely):
+                    #             csv_writer.writerow([x,y])
+                    #
+                    #     with open('action'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(action_r,action_s):
+                    #             csv_writer.writerow([x,y])
+                    #
+                    #     with open('reward'+str(i)+'.csv','wb') as f:
+                    #         csv_writer = csv.writer(f)
+                    #         for x,y in zip(speed_reward,error_reward):
+                    #             csv_writer.writerow([x,y])
 
                 if j > 0:
                     ave_error = info.get("avgError")
                     # print max(total_noise0), max(total_noise1)
                     # if i < exp_time:
-                    if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
+                    # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
+                    if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     # print(
@@ -332,8 +335,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
-    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
+    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-3)
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-2)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
