@@ -68,10 +68,11 @@ def train(sess, env, args, actor, critic):
     totalTime = 0
     ave_error = 0
     exp_time = int(args['max_episodes'])-10
-    oriNoiseRate, rotNoiseRate = 1 , 0.8
+    oriNoiseRate, rotNoiseRate = 1, 0.8
 
 
     last_loss, last_times = 4.0E8, 0
+    lastReward = -1
     ave_err = 4
     count = 10
     print "===================="+str(env.car.mess)+"================="
@@ -93,7 +94,8 @@ def train(sess, env, args, actor, critic):
         # SIGMA  Volatility of the stochastic processes
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
-        orientationN, rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate), OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
+        orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
+        rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
 
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
@@ -101,13 +103,12 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 1.0E5 or ave_err > 0.1 or last_times < env.max_time or i < 1000:
+        if last_loss > 4.0E-3 or ave_err > 0.1 or last_times < env.max_time or lastReward < -0.1 or i < 500:
            isConvergence = False
            count = 10
         else:
             count -= 1
 
-        lastReward = -1
         for j in range(4000):
             if args['render_env']:
                 env.render()
@@ -122,7 +123,7 @@ def train(sess, env, args, actor, critic):
 
             # if i < exp_time:
             # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
-            if not isConvergence or lastReward < -0.5:
+            if not isConvergence:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -147,7 +148,8 @@ def train(sess, env, args, actor, critic):
             else:
                 if count == 0:
                     env.setCarMess(500 + random.randint(100, 500))
-                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
                     print "===================="+str(env.car.mess)+"================="
                     count = 10
                 a = dirOut
@@ -194,6 +196,12 @@ def train(sess, env, args, actor, critic):
                 predicted_q_value, _ = critic.train(
                     # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
                     s_batch, a_batch, y_label)
+                # if not isConvergence:
+                #     predicted_q_value, _ = critic.train(
+                #         # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                #         s_batch, a_batch, y_label)
+                # else:
+                #     predicted_q_value = critic.predict(s_batch, a_batch)
 
                 loss = sess.run([critic.loss], feed_dict={
                     critic.inputs: s_batch,
@@ -213,6 +221,9 @@ def train(sess, env, args, actor, critic):
                 a_outs = actor.predict(s_batch)
                 grads = critic.action_gradients(s_batch, a_outs)
                 actor.train(s_batch, grads[0])
+                # if not isConvergence:
+                #     grads = critic.action_gradients(s_batch, a_outs)
+                #     actor.train(s_batch, grads[0])
 
                 # Update target networks
                 actor.update_target_network()
@@ -247,7 +258,7 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    if (i % 100 == 0 and 500 <= i):
+                    if (i % 50 == 0) and isConvergence:
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):

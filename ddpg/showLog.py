@@ -38,6 +38,7 @@ def show(i):
 
     fig = plt.figure()
     ax = fig.add_subplot(2,2,1)
+    ax.set_aspect(1) # 按比例显示
     ax1 = fig.add_subplot(2,2,2)
     ax2 = fig.add_subplot(2,2,3)
     ax3 = fig.add_subplot(2,2,4)
@@ -57,4 +58,4 @@ def show(i):
 if __name__=="__main__":
     import sys
     # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    show(1300)
+    show(500)
