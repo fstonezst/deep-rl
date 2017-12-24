@@ -43,6 +43,9 @@ class AGV:
         self.J2 = np.matrix([[self.rs, 0, 0], [0, self.rf, 0], [0, 0, self.rf]])
         self.P = np.matrix([1, 0, 0]).T
 
+    def setMess(self, m):
+        if m > 0 :
+            self.mess = m
 
     def countHB(self):
         return np.dot(np.dot(self.getSumB().T, self.M),

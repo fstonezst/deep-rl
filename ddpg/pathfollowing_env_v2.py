@@ -18,7 +18,7 @@ class PathFollowingV2(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 2
+    error_bound = 1
     history_length = 6
 
     def _reset(self):
@@ -104,6 +104,9 @@ class PathFollowingV2(gym.Env):
         self._seed()
         self._reset()
 
+    def setCarMess(self, m):
+        self.car.setMess(m)
+
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -160,17 +163,26 @@ class PathFollowingV2(gym.Env):
 
         # error_reward = np.square(error) * 50
         # error_reward = np.square(error * 3) * 2.0E2
-        error_reward = np.square(error * 3) * 1.0E2
+        # error_reward = np.square(error * 3) * 1.0E2
 
 
-        speed_reward = 2.0E1 / (np.square(speed) + 5.0E-3) - 50 # 待测试
+
+        error_reward = np.square(error) * 8.0E-1
+        # error_reward = np.square(error) * 6.0E-1
+        # error_reward = np.square(error) * 1.0E0
+
+
+        speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
+        # speed_reward = 4E-2 / (speed + 4.0E-2)  # 待测试
+
+        # speed_reward = 2.0E1 / (np.square(speed) + 5.0E-3) - 50 # 待测试
         # speed_reward = -np.log(speed + 1.0E-1) * 5.0E2
         if speed_reward < 0:
             speed_reward = 0
 
 
         reward = speed_reward + error_reward
-        # reward /= 5000.0
+        # reward /= 4000
         self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
 
