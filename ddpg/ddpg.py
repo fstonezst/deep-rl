@@ -193,15 +193,15 @@ def train(sess, env, args, actor, critic):
                 #     critic.loss: loss
                 # })
 
-                predicted_q_value, _ = critic.train(
-                    # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                    s_batch, a_batch, y_label)
-                # if not isConvergence:
-                #     predicted_q_value, _ = critic.train(
-                #         # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                #         s_batch, a_batch, y_label)
-                # else:
-                #     predicted_q_value = critic.predict(s_batch, a_batch)
+                # predicted_q_value, _ = critic.train(
+                #     # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                #     s_batch, a_batch, y_label)
+                if not isConvergence:
+                    predicted_q_value, _ = critic.train(
+                        # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                        s_batch, a_batch, y_label)
+                else:
+                    predicted_q_value = critic.predict(s_batch, a_batch)
 
                 loss = sess.run([critic.loss], feed_dict={
                     critic.inputs: s_batch,
@@ -218,12 +218,13 @@ def train(sess, env, args, actor, critic):
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                a_outs = actor.predict(s_batch)
-                grads = critic.action_gradients(s_batch, a_outs)
-                actor.train(s_batch, grads[0])
-                # if not isConvergence:
-                #     grads = critic.action_gradients(s_batch, a_outs)
-                #     actor.train(s_batch, grads[0])
+                # a_outs = actor.predict(s_batch)
+                # grads = critic.action_gradients(s_batch, a_outs)
+                # actor.train(s_batch, grads[0])
+                if not isConvergence:
+                    a_outs = actor.predict(s_batch)
+                    grads = critic.action_gradients(s_batch, a_outs)
+                    actor.train(s_batch, grads[0])
 
                 # Update target networks
                 actor.update_target_network()
