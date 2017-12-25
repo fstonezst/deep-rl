@@ -68,10 +68,11 @@ def train(sess, env, args, actor, critic):
     totalTime = 0
     ave_error = 0
     exp_time = int(args['max_episodes'])-10
-    oriNoiseRate, rotNoiseRate = 1 , 0.8
+    oriNoiseRate, rotNoiseRate = 1, 0.8
 
 
     last_loss, last_times = 4.0E8, 0
+    lastReward = -1
     ave_err = 4
     count = 10
     print "===================="+str(env.car.mess)+"================="
@@ -93,7 +94,8 @@ def train(sess, env, args, actor, critic):
         # SIGMA  Volatility of the stochastic processes
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
-        orientationN, rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate), OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
+        orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
+        rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
 
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
@@ -101,13 +103,12 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 1.0E5 or ave_err > 0.1 or last_times < env.max_time or i < 1000:
+        if last_loss > 4.0E-3 or ave_err > 0.1 or last_times < env.max_time or lastReward < -0.1 or i < 500:
            isConvergence = False
            count = 10
         else:
             count -= 1
 
-        lastReward = 200
         for j in range(4000):
             if args['render_env']:
                 env.render()
@@ -122,7 +123,7 @@ def train(sess, env, args, actor, critic):
 
             # if i < exp_time:
             # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
-            if not isConvergence or lastReward > 100:
+            if not isConvergence:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -147,7 +148,8 @@ def train(sess, env, args, actor, critic):
             else:
                 if count == 0:
                     env.setCarMess(500 + random.randint(100, 500))
-                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
                     print "===================="+str(env.car.mess)+"================="
                     count = 10
                 a = dirOut
@@ -191,9 +193,15 @@ def train(sess, env, args, actor, critic):
                 #     critic.loss: loss
                 # })
 
-                predicted_q_value, _ = critic.train(
-                    # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                    s_batch, a_batch, y_label)
+                # predicted_q_value, _ = critic.train(
+                #     # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                #     s_batch, a_batch, y_label)
+                if not isConvergence:
+                    predicted_q_value, _ = critic.train(
+                        # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                        s_batch, a_batch, y_label)
+                else:
+                    predicted_q_value = critic.predict(s_batch, a_batch)
 
                 loss = sess.run([critic.loss], feed_dict={
                     critic.inputs: s_batch,
@@ -210,9 +218,13 @@ def train(sess, env, args, actor, critic):
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                a_outs = actor.predict(s_batch)
-                grads = critic.action_gradients(s_batch, a_outs)
-                actor.train(s_batch, grads[0])
+                # a_outs = actor.predict(s_batch)
+                # grads = critic.action_gradients(s_batch, a_outs)
+                # actor.train(s_batch, grads[0])
+                if not isConvergence:
+                    a_outs = actor.predict(s_batch)
+                    grads = critic.action_gradients(s_batch, a_outs)
+                    actor.train(s_batch, grads[0])
 
                 # Update target networks
                 actor.update_target_network()
@@ -247,26 +259,26 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    # if (i % 50 == 0 and 500 <= i):
-                    #     with open('movePath'+str(i)+'.csv','wb') as f:
-                    #         csv_writer = csv.writer(f)
-                    #         for x,y in zip(moveStorex,moveStorey):
-                    #             csv_writer.writerow([x,y])
-                    #
-                    #     with open('wheelPath'+str(i)+'.csv','wb') as f:
-                    #         csv_writer = csv.writer(f)
-                    #         for x,y in zip(wheelx,wheely):
-                    #             csv_writer.writerow([x,y])
-                    #
-                    #     with open('action'+str(i)+'.csv','wb') as f:
-                    #         csv_writer = csv.writer(f)
-                    #         for x,y in zip(action_r,action_s):
-                    #             csv_writer.writerow([x,y])
-                    #
-                    #     with open('reward'+str(i)+'.csv','wb') as f:
-                    #         csv_writer = csv.writer(f)
-                    #         for x,y in zip(speed_reward,error_reward):
-                    #             csv_writer.writerow([x,y])
+                    if (i % 50 == 0) and isConvergence:
+                        with open('movePath'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(moveStorex,moveStorey):
+                                csv_writer.writerow([x,y])
+
+                        with open('wheelPath'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(wheelx,wheely):
+                                csv_writer.writerow([x,y])
+
+                        with open('action'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(action_r,action_s):
+                                csv_writer.writerow([x,y])
+
+                        with open('reward'+str(i)+'.csv','wb') as f:
+                            csv_writer = csv.writer(f)
+                            for x,y in zip(speed_reward,error_reward):
+                                csv_writer.writerow([x,y])
 
                 if j > 0:
                     ave_error = info.get("avgError")
@@ -335,8 +347,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
-    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-3)
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-2)
+    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
