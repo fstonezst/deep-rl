@@ -15,7 +15,7 @@ class PathFollowingV2(gym.Env):
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
     error_bound = 1
-    history_length = 2
+    history_length = 6
 
     def _reset(self):
         self.car = AGV()
@@ -166,7 +166,7 @@ class PathFollowingV2(gym.Env):
         done = True if self.time > self.max_time or abs(error) > PathFollowingV2.error_bound else False
 
         if done:
-            return np.array(self.state), -reward, done, {"result": [], \
+            return np.array(self.state), -reward, done, {"result": [],\
                                                          "avgError": self.totalError / float(self.time),
                                                          "moveStore": [self.moveStorex, self.moveStorey],
                                                          "action": [self.action_r_store, self.action_s_store],

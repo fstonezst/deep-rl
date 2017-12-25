@@ -103,7 +103,7 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 4.0E-3 or ave_err > 0.1 or last_times < env.max_time or lastReward < -0.1 or i < 500:
+        if last_loss > 4.0E-3 or ave_err > 0.1 or last_times < env.max_time or lastReward < -1.0E-2 or i < 500:
            isConvergence = False
            count = 10
         else:
