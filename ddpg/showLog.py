@@ -48,8 +48,9 @@ def show(i):
     ax3.plot(error_reward,'r-o', label='error_reward')
     ax3.plot(speed_reward,'b-*', label='speed_reward')
     ax3.plot(total_reward,'y-*', label='total_reward')
-    cir1 = Circle(xy=(0.0, 0.0), radius=10, alpha=0.4)
-    ax.add_patch(cir1)
+    # cir1 = Circle(xy=(0.0, 0.0), radius=10, alpha=0.4)
+    # ax.add_patch(cir1)
+
     # ax.plot(cir1, 'y-')
     plt.show()
 
@@ -57,4 +58,4 @@ def show(i):
 if __name__=="__main__":
     import sys
     # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    show(1300)
+    show(600)

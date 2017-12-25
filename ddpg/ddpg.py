@@ -15,7 +15,8 @@ import numpy as np
 from gym import wrappers
 import argparse
 import pprint as pp
-from pathfollowing_env_v2 import PathFollowingV2
+# from pathfollowing_env_v2 import PathFollowingV2
+from pathfollowing_env_v3 import PathFollowingV3
 from replay_buffer import ReplayBuffer
 from Critic import CriticNetwork
 from Actor import ActorNetwork
@@ -297,7 +298,7 @@ def main(args):
 
         # env = gym.make(args['env'])
         # env = PathFollowing()
-        env = PathFollowingV2()
+        env = PathFollowingV3()
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
