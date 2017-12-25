@@ -33,10 +33,10 @@ class PathFollowingV2(gym.Env):
         self.speed = []
         self.error_reward_record, self.speed_reward_record = [], []
 
-        errorState, u0State, u1State = [0] * 6, [0] * 6, [0] * 6
+        errorState, u0State, u1State = [0] * PathFollowingV2.history_length, [0] * PathFollowingV2.history_length, [0] * PathFollowingV2.history_length
         self.state = errorState + u0State + u1State
-        B, speed = float(self.car.q[2]), float(self.car.q[3])
-        self.state.extend([B, speed])
+        theta, B = float(self.car.q[2]), float(self.car.q[3])
+        self.state.extend([theta, B])
 
         return np.array(self.state)
 
