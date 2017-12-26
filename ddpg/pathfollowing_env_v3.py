@@ -14,7 +14,7 @@ class PathFollowingV3(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 1
+    error_bound = 2
     history_length = 6
 
     def _reset(self):
@@ -62,7 +62,7 @@ class PathFollowingV3(gym.Env):
         # self.min_position = -1
         # self.max_position = 1
 
-        self.max_time = 300
+        self.max_time = 600
         self.viewer = None
 
         # self.path = [math.sin(x*(math.pi/180.0)) for x in range(0, 512)]
@@ -128,19 +128,20 @@ class PathFollowingV3(gym.Env):
         # error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
 
         startx, starty = 10, 0
-        firstLineLength, secondLineLength = 10, 10
+        firstLineLength, secondLineLength = 5, 10
         firstArcR, secondArcR = 6, 4
         firstArcx, firstArcy = startx-firstArcR, starty+firstLineLength
         secondArcx, secondArcy = firstArcx, firstArcy+firstArcR+secondArcR
+        yabound = starty + firstLineLength + firstArcR + secondArcR + secondLineLength
 
         if wheely <= firstArcy:
             error = wheelx - startx
         elif wheely >= secondArcy:
             error = wheelx - (startx - (firstArcR+secondArcR))
         elif wheelx >= firstArcx:
-            error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - 6
+            error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - firstArcR
         elif wheelx < secondArcx:
-            error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - 4
+            error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - secondArcR
         else:
             print "=======ERROR======="
 
@@ -180,6 +181,7 @@ class PathFollowingV3(gym.Env):
         #     reward += (1-ratio) * abs(actionDiff[1])
 
         done = True if self.time > self.max_time or abs(error) > PathFollowingV3.error_bound else False
+        # done = True if wheely >= yabound or abs(error) > PathFollowingV3.error_bound else False
 
         if done:
             return np.array(self.state), -reward, done, {"result": [], \
