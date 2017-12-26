@@ -56,14 +56,14 @@ class ActorNetwork(object):
         N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
         DROPOU_KEEP_PROB = 0.5
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2')
+        # net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2')
+        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu')
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
-
         net = tflearn.layers.normalization.batch_normalization(net)
 
-        net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu',regularizer='L2')
+        # net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu',regularizer='L2')
+        net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu')
         net = tflearn.dropout(net, DROPOU_KEEP_PROB)
-
         net = tflearn.layers.normalization.batch_normalization(net)
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
