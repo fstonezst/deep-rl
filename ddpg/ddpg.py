@@ -69,7 +69,7 @@ def train(sess, env, args, actor, critic):
     totalTime = 0
     ave_error = 0
     exp_time = int(args['max_episodes'])-10
-    oriNoiseRate, rotNoiseRate = 1 , 0.8
+    oriNoiseRate, rotNoiseRate = 1, 0.8
 
 
     last_loss, last_times = 4.0E8, 0
@@ -248,7 +248,8 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    if (i % 100 == 0 and 500 <= i):
+                    # if (i % 20 == 0 and 500 <= i):
+                    if (i % 200 == 0):
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
