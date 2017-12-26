@@ -14,17 +14,20 @@ class PathFollowingV3(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 2
-    history_length = 6
+    error_bound = 1
+    history_length = 4
 
     def _reset(self):
+        history_len = 4
         self.car = AGV()
         self.totalError = 0
         self.time = 0
-        self.error_record_buffer = [0] * PathFollowingV3.history_length
-        self.u0_record_buffer = [0] * PathFollowingV3.history_length
-        self.u1_record_buffer = [0] * PathFollowingV3.history_length
-
+        self.error_record_buffer = [0] * history_len
+        self.derr_record_buffer = [0] * history_len
+        self.u0_record_buffer = [0] * history_len
+        self.deU0_record_buffer = [0] * history_len
+        self.u1_record_buffer = [0] * history_len
+        self.B_record_buffer, self.speed_record_buffer = [0] * history_len, [0] * history_len
         self.lastAction = 0
 
         self.moveStorex, self.moveStorey = [], []
@@ -33,10 +36,11 @@ class PathFollowingV3(gym.Env):
         self.speed = []
         self.error_reward_record, self.speed_reward_record = [], []
 
-        errorState, u0State, u1State = [0] * 6, [0] * 6, [0] * 6
-        self.state = errorState + u0State + u1State
-        B, speed = float(self.car.q[2]), float(self.car.q[3])
-        self.state.extend([B, speed])
+        errorState, u0State, u1State,  = [0] * history_len, [0] * history_len, [0] * history_len
+        BState, speedState = [float(self.car.q[2])] * history_len, [float(self.car.q[3])] * history_len
+        derroState, deU0State = [0] * history_len, [0] * history_len
+        self.state = errorState + u0State + u1State + derroState + deU0State + BState + speedState
+        # self.state.extend([B, speed])
 
         return np.array(self.state)
 
@@ -45,9 +49,11 @@ class PathFollowingV3(gym.Env):
         self.totalError = 0
         self.time = 0
 
-        self.error_record_buffer = [0] * PathFollowingV3.history_length
-        self.u0_record_buffer = [0] * PathFollowingV3.history_length
-        self.u1_record_buffer = [0] * PathFollowingV3.history_length
+        # self.error_record_buffer = [0] * PathFollowingV3.history_length
+        # self.derr_record_buffer = [0] * PathFollowingV3.history_length
+        # self.u0_record_buffer = [0] * PathFollowingV3.history_length
+        # self.deU0_record_buffer = [0] * PathFollowingV3.history_length
+        # self.u1_record_buffer = [0] * PathFollowingV3.history_length
 
         self.lastAction = np.array([0, 0])
 
@@ -114,6 +120,7 @@ class PathFollowingV3(gym.Env):
 
         self.time += 1
 
+        history_len = PathFollowingV3.history_length
         curcarx, curcary = float(self.car.q[0]), float(self.car.q[1])
         wheelx, wheely = float(self.car.wheelPos[0]), float(self.car.wheelPos[1])
         self.moveStorex.append(curcarx)
@@ -121,6 +128,12 @@ class PathFollowingV3(gym.Env):
         self.wheelx.append(wheelx)
         self.wheely.append(wheely)
 
+        theta, B, speed = float(self.car.q[2]), float(self.car.q[3]), float(self.car.uk[0])  # float(self.car.q[4])
+        self.speed.append(speed)
+
+        self.deU0_record_buffer.append(float(self.car.uk[0]) - self.u0_record_buffer[-1])
+        self.B_record_buffer.append(B)
+        self.speed_record_buffer.append(speed)
         self.u0_record_buffer.append(float(self.car.uk[0]))
         self.u1_record_buffer.append(float(self.car.uk[1]))
 
@@ -128,10 +141,10 @@ class PathFollowingV3(gym.Env):
         # error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
 
         startx, starty = 10, 0
-        firstLineLength, secondLineLength = 5, 10
+        firstLineLength, secondLineLength, midLineLength = 4, 10, 6
         firstArcR, secondArcR = 6, 4
         firstArcx, firstArcy = startx-firstArcR, starty+firstLineLength
-        secondArcx, secondArcy = firstArcx, firstArcy+firstArcR+secondArcR
+        secondArcx, secondArcy = firstArcx-midLineLength, firstArcy+firstArcR+secondArcR
         yabound = starty + firstLineLength + firstArcR + secondArcR + secondLineLength
 
         if wheely <= firstArcy:
@@ -140,29 +153,36 @@ class PathFollowingV3(gym.Env):
             error = wheelx - (startx - (firstArcR+secondArcR))
         elif wheelx >= firstArcx:
             error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - firstArcR
-        elif wheelx < secondArcx:
+        elif wheelx <= secondArcx:
             error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - secondArcR
         else:
-            print "=======ERROR======="
+            error = wheely - (firstArcy + firstArcR)
 
 
         self.totalError += abs(error)
+        self.derr_record_buffer.append(error-self.error_record_buffer[-1])
         self.error_record_buffer.append(error)
+
         # self.error_sum += error
         # self.error_abs_sum += abs(error)
 
         if len(self.error_record_buffer) > self.buffer_size:
             self.error_record_buffer.pop(0)
+            self.derr_record_buffer.pop(0)
             self.u0_record_buffer.pop(0)
             self.u1_record_buffer.pop(0)
+            self.deU0_record_buffer.pop(0)
+            self.B_record_buffer.pop(0)
+            self.speed_record_buffer.pop(0)
 
         error_state = self.error_record_buffer[-PathFollowingV3.history_length:]
+        derror_state = self.derr_record_buffer[-history_len:]
         u0_state = self.u0_record_buffer[-PathFollowingV3.history_length:]
+        deU0_state = self.deU0_record_buffer[-history_len:]
         u1_state = self.u1_record_buffer[-PathFollowingV3.history_length:]
-        st = error_state + u0_state + u1_state
-        theta, B, speed = float(self.car.q[2]), float(self.car.q[3]), float(self.car.uk[0])  # float(self.car.q[4])
-        self.speed.append(speed)
-        st.extend([theta, B])
+        BState = self.B_record_buffer[-history_len:]
+        speedState = self.speed_record_buffer[-history_len:]
+        st = error_state + u0_state + u1_state + derror_state + deU0_state + BState + speedState
         self.state = np.array(st)
 
         diff1, diff2 = actionDiff[0], actionDiff[1]
