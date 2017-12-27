@@ -57,10 +57,17 @@ class CriticNetwork(object):
         N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
         DROPOU_KEEP_PROB = 0.5
 
+        # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim])
+        inputs = tflearn.batch_normalization(inputs)
+
+        # action input
         action = tflearn.input_data(shape=[None, self.a_dim])
+
+        # first layer for state
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
         net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.batch_normalization(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
