@@ -177,8 +177,8 @@ class PathFollowingV3(gym.Env):
         du0_state = self.du0_record_buffer[-history_len:]
         du1_state = self.du1_record_buffer[-history_len:]
 
-        st = error_state + thetaState + BState + u0_state + u1_state + derror_state \
-            + dthata_state + dB_state + du0_state + du1_state
+        st = error_state + thetaState + BState + u0_state + u1_state\
+             + derror_state + dthata_state + dB_state + du0_state + du1_state
         self.state = np.array(st)
 
 
