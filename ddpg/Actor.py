@@ -58,15 +58,15 @@ class ActorNetwork(object):
         DROPOU_KEEP_PROB = 0.5
 
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        inputs = tflearn.batch_normalization(inputs)
+        inputLayer = tflearn.layers.normalization.batch_normalization(inputs)
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputs, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
-        net = tflearn.batch_normalization(net)
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.layers.normalization.batch_normalization(net)
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1), maxval=1/np.sqrt(N_HIDDEN_1))
         net = tflearn.fully_connected(net, N_HIDDEN_2, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
-        net = tflearn.batch_normalization(net)
+        net = tflearn.layers.normalization.batch_normalization(net)
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
