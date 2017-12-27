@@ -5,6 +5,7 @@ import numpy as np
 from gym.utils import seeding
 from gym import spaces
 from AGV_Model import AGV
+import random
 
 class PathFollowingV3(gym.Env):
     metadata = {
@@ -19,15 +20,11 @@ class PathFollowingV3(gym.Env):
 
     def _reset(self):
         history_len = 4
-        self.car = AGV()
+        wheelx, wheely = random.randint(-9, 9) * 0.01 + 10, 0
+        theta = random.randint(-35, 35) * 0.01 + np.pi
+        self.car = AGV(wheelPos=[wheelx, wheely], theta=theta)
         self.totalError = 0
         self.time = 0
-        self.error_record_buffer = [0] * history_len
-        self.derr_record_buffer = [0] * history_len
-        self.u0_record_buffer = [0] * history_len
-        self.deU0_record_buffer = [0] * history_len
-        self.u1_record_buffer = [0] * history_len
-        self.B_record_buffer, self.speed_record_buffer = [0] * history_len, [0] * history_len
         self.lastAction = 0
 
         self.moveStorex, self.moveStorey = [], []
@@ -36,25 +33,37 @@ class PathFollowingV3(gym.Env):
         self.speed = []
         self.error_reward_record, self.speed_reward_record = [], []
 
-        errorState, u0State, u1State,  = [0] * history_len, [0] * history_len, [0] * history_len
-        BState, speedState = [float(self.car.q[2])] * history_len, [float(self.car.q[3])] * history_len
-        derroState, deU0State = [0] * history_len, [0] * history_len
-        self.state = errorState + u0State + u1State + derroState + deU0State + BState + speedState
-        # self.state.extend([B, speed])
+        self.error_record_buffer = [0] * history_len
+        self.theta_record_buffer = [0] * history_len
+        self.B_record_buffer = [0] * history_len
+        self.u0_record_buffer = [0] * history_len
+        self.u1_record_buffer = [0] * history_len
 
+        self.derror_record_buffer = [0] * history_len
+        self.dtheta_record_buffer = [0] * history_len
+        self.dB_record_buffer = [0] * history_len
+        self.du0_record_buffer = [0] * history_len
+        self.du1_record_buffer = [0] * history_len
+
+
+
+        errorState, u0State, u1State,  = [0] * history_len, [0] * history_len, [0] * history_len
+        thetaState, BState= [float(self.car.q[2])] * history_len, [float(self.car.q[3])] * history_len
+        derrorState, dthetaState, dBState = [0] * history_len, [0] * history_len, [0] * history_len
+        du0State, du1State = [0] * history_len, [0] * history_len
+
+        self.state = errorState + thetaState + BState + u0State + u1State \
+            + derrorState + dthetaState + dBState + du0State + du1State
         return np.array(self.state)
 
     def __init__(self):
+        self.buffer_size = 10
+        self.max_time = 600
+        self.viewer = None
+
         self.car = AGV()
         self.totalError = 0
         self.time = 0
-
-        # self.error_record_buffer = [0] * PathFollowingV3.history_length
-        # self.derr_record_buffer = [0] * PathFollowingV3.history_length
-        # self.u0_record_buffer = [0] * PathFollowingV3.history_length
-        # self.deU0_record_buffer = [0] * PathFollowingV3.history_length
-        # self.u1_record_buffer = [0] * PathFollowingV3.history_length
-
         self.lastAction = np.array([0, 0])
 
         # self.pathStore = []
@@ -64,16 +73,7 @@ class PathFollowingV3(gym.Env):
         self.speed = []
         self.error_reward_record, self.speed_reward_record = [], []
 
-        self.buffer_size = 10
-        # self.min_position = -1
-        # self.max_position = 1
-
-        self.max_time = 600
-        self.viewer = None
-
-        # self.path = [math.sin(x*(math.pi/180.0)) for x in range(0, 512)]
-        self.r = 10
-        # self.movepath = [0 for _ in range(0, 180)]
+        # self.r = 10
 
         # action bounded
         min_orientation, max_orientation = -AGV.MAX_ORIENTATION, AGV.MAX_ORIENTATION
@@ -109,39 +109,20 @@ class PathFollowingV3(gym.Env):
         return [seed]
 
     def _step(self, action):
-        self.car.controlInput(np.matrix(action))
-        orientation, rotation = float(action[0][0]), float(action[0][1])
-        self.action_r_store.append(orientation)
-        self.action_s_store.append(rotation)
-
-        actionDiff = action - self.lastAction
-        actionDiff = actionDiff[0]
-        self.lastAction = action
-
+        history_len = PathFollowingV3.history_length
         self.time += 1
 
-        history_len = PathFollowingV3.history_length
+        # control
+        self.car.controlInput(np.matrix(action))
+
+        # AGV new state
         curcarx, curcary = float(self.car.q[0]), float(self.car.q[1])
         wheelx, wheely = float(self.car.wheelPos[0]), float(self.car.wheelPos[1])
-        self.moveStorex.append(curcarx)
-        self.moveStorey.append(curcary)
-        self.wheelx.append(wheelx)
-        self.wheely.append(wheely)
-
         theta, B, speed = float(self.car.q[2]), float(self.car.q[3]), float(self.car.uk[0])  # float(self.car.q[4])
-        self.speed.append(speed)
 
-        self.deU0_record_buffer.append(float(self.car.uk[0]) - self.u0_record_buffer[-1])
-        self.B_record_buffer.append(B)
-        self.speed_record_buffer.append(speed)
-        self.u0_record_buffer.append(float(self.car.uk[0]))
-        self.u1_record_buffer.append(float(self.car.uk[1]))
-
-        # error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
-        # error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
-
+        #ERROR Cul
         startx, starty = 10, 0
-        firstLineLength, secondLineLength, midLineLength = 4, 10, 6
+        firstLineLength, secondLineLength, midLineLength = 4, 10, 4
         firstArcR, secondArcR = 6, 4
         firstArcx, firstArcy = startx-firstArcR, starty+firstLineLength
         secondArcx, secondArcy = firstArcx-midLineLength, firstArcy+firstArcR+secondArcR
@@ -159,46 +140,76 @@ class PathFollowingV3(gym.Env):
             error = wheely - (firstArcy + firstArcR)
 
 
-        self.totalError += abs(error)
-        self.derr_record_buffer.append(error-self.error_record_buffer[-1])
+        # State Record
         self.error_record_buffer.append(error)
+        self.theta_record_buffer.append(speed)
+        self.B_record_buffer.append(B)
+        self.u0_record_buffer.append(float(self.car.uk[0]))
+        self.u1_record_buffer.append(float(self.car.uk[1]))
 
-        # self.error_sum += error
-        # self.error_abs_sum += abs(error)
+        self.derror_record_buffer.append(error-self.error_record_buffer[-1])
+        self.dtheta_record_buffer.append(theta-self.theta_record_buffer[-1])
+        self.dB_record_buffer.append(B-self.B_record_buffer[-1])
+        self.du0_record_buffer.append(float(self.car.uk[0]) - self.u0_record_buffer[-1])
+        self.du1_record_buffer.append(float(self.car.uk[1]) - self.u1_record_buffer[-1])
+
 
         if len(self.error_record_buffer) > self.buffer_size:
             self.error_record_buffer.pop(0)
-            self.derr_record_buffer.pop(0)
+            self.theta_record_buffer.pop(0)
+            self.B_record_buffer.pop(0)
             self.u0_record_buffer.pop(0)
             self.u1_record_buffer.pop(0)
-            self.deU0_record_buffer.pop(0)
-            self.B_record_buffer.pop(0)
-            self.speed_record_buffer.pop(0)
 
+            self.derror_record_buffer.pop(0)
+            self.dtheta_record_buffer.pop(0)
+            self.dB_record_buffer.pop(0)
+            self.du0_record_buffer.pop(0)
+            self.du1_record_buffer.pop(0)
+
+        # State
         error_state = self.error_record_buffer[-PathFollowingV3.history_length:]
-        derror_state = self.derr_record_buffer[-history_len:]
-        u0_state = self.u0_record_buffer[-PathFollowingV3.history_length:]
-        deU0_state = self.deU0_record_buffer[-history_len:]
-        u1_state = self.u1_record_buffer[-PathFollowingV3.history_length:]
+        thetaState = self.theta_record_buffer[-history_len:]
         BState = self.B_record_buffer[-history_len:]
-        speedState = self.speed_record_buffer[-history_len:]
-        st = error_state + u0_state + u1_state + derror_state + deU0_state + BState + speedState
+        u0_state = self.u0_record_buffer[-PathFollowingV3.history_length:]
+        u1_state = self.u1_record_buffer[-PathFollowingV3.history_length:]
+
+        derror_state = self.derror_record_buffer[-history_len:]
+        dthata_state = self.dtheta_record_buffer[-history_len:]
+        dB_state = self.dB_record_buffer[-history_len:]
+        du0_state = self.du0_record_buffer[-history_len:]
+        du1_state = self.du1_record_buffer[-history_len:]
+
+        st = error_state + thetaState + BState + u0_state + u1_state\
+             + derror_state + dthata_state + dB_state + du0_state + du1_state
         self.state = np.array(st)
 
-        diff1, diff2 = actionDiff[0], actionDiff[1]
 
+        # Reward
         error_reward = np.square(error) * 8.0E-1
         speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
-
         reward = speed_reward + error_reward
 
+
+
+        # Record
+        orientation, rotation = float(action[0][0]), float(action[0][1])
+        self.action_r_store.append(orientation)
+        self.action_s_store.append(rotation)
         self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
+        self.totalError += abs(error)
+        self.moveStorex.append(curcarx)
+        self.moveStorey.append(curcary)
+        self.wheelx.append(wheelx)
+        self.wheely.append(wheely)
+        self.speed.append(speed)
 
-        # if abs(diff1) > 0.01:
-        #     reward += (1-ratio) * abs(actionDiff[0])
-        # if abs(diff2) > 100:
-        #     reward += (1-ratio) * abs(actionDiff[1])
+        actionDiff = action - self.lastAction
+        self.lastAction = action
+        actionDiff = actionDiff[0]
+        diff1, diff2 = actionDiff[0], actionDiff[1]
+
 
         done = True if self.time > self.max_time or abs(error) > PathFollowingV3.error_bound else False
         # done = True if wheely >= yabound or abs(error) > PathFollowingV3.error_bound else False
