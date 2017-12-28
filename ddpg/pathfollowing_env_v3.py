@@ -5,7 +5,7 @@ import numpy as np
 from gym.utils import seeding
 from gym import spaces
 from AGV_Model import AGV
-import random
+# import random
 
 class PathFollowingV3(gym.Env):
     metadata = {
@@ -19,6 +19,7 @@ class PathFollowingV3(gym.Env):
     history_length = 4
 
     def _reset(self):
+        random = self.np_random
         history_len = 4
         wheelx, wheely = random.randint(-9, 9) * 0.01 + 10, 0
         theta = random.randint(-35, 35) * 0.01 + np.pi
@@ -26,6 +27,20 @@ class PathFollowingV3(gym.Env):
         self.totalError = 0
         self.time = 0
         self.lastAction = 0
+
+        #ERROR Cul
+        self.left = random.randint(0,1)
+        self.startx, self.starty = 10, 0
+        self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0, 20)*0.1, 10, random.randint(30, 50)*0.1
+        self.firstArcR, self.secondArcR = random.randint(30, 70) * 0.1, random.randint(30,70) * 0.1
+        if self.left:
+            self.firstArcx, self.firstArcy = self.startx-self.firstArcR, self.starty+self.firstLineLength
+            self.secondArcx, self.secondArcy = self.firstArcx-self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
+        else:
+            self.firstArcx, self.firstArcy = self.startx-self.firstArcR, self.starty+self.firstLineLength
+            self.secondArcx, self.secondArcy = self.firstArcx-self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
+
+
 
         self.moveStorex, self.moveStorey = [], []
         self.wheelx, self.wheely = [], []
@@ -98,14 +113,17 @@ class PathFollowingV3(gym.Env):
         self.action_space = spaces.Box(self.action_min, self.action_max)
         self.observation_space = spaces.Box(self.observation_min, self.observation_max)
 
-        self._seed()
+        self.seedNum = 1234
+        self._seed(self.seedNum)
         self._reset()
 
     def setCarMess(self, m):
         self.car.setMess(m)
 
     def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
+        if seed is None:
+            seed = self.seedNum
+        self.np_random, self.seedNum = seeding.np_random(seed)
         return [seed]
 
     def _step(self, action):
@@ -121,23 +139,46 @@ class PathFollowingV3(gym.Env):
         theta, B, speed = float(self.car.q[2]), float(self.car.q[3]), float(self.car.uk[0])  # float(self.car.q[4])
 
         #ERROR Cul
-        startx, starty = 10, 0
-        firstLineLength, secondLineLength, midLineLength = 4, 10, 4
-        firstArcR, secondArcR = 6, 4
-        firstArcx, firstArcy = startx-firstArcR, starty+firstLineLength
-        secondArcx, secondArcy = firstArcx-midLineLength, firstArcy+firstArcR+secondArcR
+        left = self.left
+        startx, starty = self.startx, self.starty
+        firstLineLength, secondLineLength, midLineLength = self.firstLineLength, self.secondLineLength, self.midLineLength
+        firstArcR, secondArcR = self.firstArcR, self.secondArcR
+        if left:
+            firstArcx, firstArcy = startx-firstArcR, starty+firstLineLength
+            secondArcx, secondArcy = firstArcx-midLineLength, firstArcy+firstArcR+secondArcR
+        else:
+            firstArcx, firstArcy = startx+firstArcR, starty+firstLineLength
+            secondArcx, secondArcy = firstArcx+midLineLength, firstArcy+firstArcR+secondArcR
+
         yabound = starty + firstLineLength + firstArcR + secondArcR + secondLineLength
 
-        if wheely <= firstArcy:
-            error = wheelx - startx
-        elif wheely >= secondArcy:
-            error = wheelx - (startx - (firstArcR+secondArcR))
-        elif wheelx >= firstArcx:
-            error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - firstArcR
-        elif wheelx <= secondArcx:
-            error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - secondArcR
+        if left:
+            if wheely <= firstArcy:
+                # first line
+                error = wheelx - startx
+            elif wheely >= secondArcy:
+                # final line
+                error = wheelx - (secondArcx - secondArcR)
+            elif wheelx >= firstArcx:
+                # first arc
+                error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - firstArcR
+            elif wheelx <= secondArcx:
+                # second arc
+                error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - secondArcR
+            else:
+                # mid line
+                error = wheely - (firstArcy + firstArcR)
         else:
-            error = wheely - (firstArcy + firstArcR)
+            if wheely <= firstArcy:
+                error = wheelx - startx
+            elif wheely >= secondArcy:
+                error = wheelx - (secondArcx + secondArcR)
+            elif wheelx <= firstArcx:
+                error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - firstArcR
+            elif wheelx >= secondArcx:
+                error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - secondArcR
+            else:
+                error = wheely - (firstArcy + firstArcR)
 
 
         # State Record
