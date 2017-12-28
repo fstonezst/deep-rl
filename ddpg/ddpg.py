@@ -260,7 +260,7 @@ def train(sess, env, args, actor, critic):
                     writer.flush()
 
                     # if (i % 20 == 0 and 500 <= i):
-                    if (i % 200 == 0):
+                    if (i % 200 == 0 and not isConvergence) or (isConvergence and i % 10):
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
