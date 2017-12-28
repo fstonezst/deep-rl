@@ -35,7 +35,6 @@ def show(i):
             error_reward.append(line[1])
             total_reward.append(float(line[0]) + float(line[1]))
 
-
     fig = plt.figure()
     ax = fig.add_subplot(2,2,1)
     ax.set_aspect(1)
@@ -59,4 +58,4 @@ def show(i):
 if __name__=="__main__":
     import sys
     # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    show(4000)
+    show(1000)

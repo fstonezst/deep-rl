@@ -23,6 +23,7 @@ from Actor import ActorNetwork
 import os
 import random
 from AGV_Model import AGV
+from rank_based import Experience
 import csv
 
 
@@ -50,6 +51,13 @@ def build_summaries():
 # ===========================
 #   Agent Training
 # ===========================
+def convert_experience_to_separate(self, experience):
+    s_batch = np.array([item[0] for item in experience])
+    a_batch = np.array([item[1] for item in experience])
+    r_batch = np.array([item[2] for item in experience])
+    s2_batch = np.array([item[3] for item in experience])
+    t_batch = np.array([item[4] for item in experience])
+    return s_batch, a_batch, r_batch, s2_batch, t_batch
 
 def train(sess, env, args, actor, critic):
     from Noise import OrnsteinUhlenbeckNoise
@@ -65,6 +73,20 @@ def train(sess, env, args, actor, critic):
 
     # Initialize replay memory
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
+    conf = {
+        'batch_size': 32,
+        'replay_memory_size': 20000,
+        'prioritized_learnt_start': 2500,
+        'word_dim': 32,
+        'debug': False,
+    }
+
+    replay_memory_conf = {'size': int(args['buffer_size']),
+            'learn_start': 10,
+            'partition_num': int(args['minibatch_size']),
+            'total_step': 100,
+            'batch_size': int(args['minibatch_size'])}
+    replay_memory = Experience.ReplayMemory(replay_memory_conf)
 
     totalTime = 0
     ave_error = 0
@@ -112,6 +134,7 @@ def train(sess, env, args, actor, critic):
         for j in range(4000):
             if args['render_env']:
                 env.render()
+            totalTime += 1
 
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
@@ -160,12 +183,19 @@ def train(sess, env, args, actor, critic):
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
+            exp = (np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
+                               np.reshape(s2, (actor.s_dim,)), terminal)
+            replay_memory.store(exp)
+
             lastReward = r
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
             if replay_buffer.size() > int(args['minibatch_size']):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
                     replay_buffer.sample_batch(int(args['minibatch_size']))
+                sample, w, e_id = Experience.sample(totalTime)
+                s_batch, a_batch, r_batch, t_batch, s2_batch = convert_experience_to_separate(sample)
+
 
                 # Calculate targets
                 target_q = critic.predict_target(
@@ -209,6 +239,8 @@ def train(sess, env, args, actor, critic):
                     critic.predicted_q_value: y_label
                 })
 
+                Experience.update_priority(e_id,loss)
+
 
                 diff = y_label - predicted_q_value
                 diff = abs(diff)
@@ -235,7 +267,7 @@ def train(sess, env, args, actor, critic):
 
             if terminal:
 
-                totalTime += j
+                # totalTime += j
 
                 moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
                 wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]

@@ -235,18 +235,19 @@ class AGV:
 # pathx, pathy = [], []
 # centerx, centery = [], []
 # B = []
-# for i in range(100):
+# for i in range(30):
 #     pathx.append(car.q[0])
 #     pathy.append(car.q[1])
 #     centerx.append(car.wheelPos[0])
 #     centery.append(car.wheelPos[1])
 #     # car.control(np.matrix([[1], [2]]))
 #     # car.controlInput(np.matrix([5, 2000]))
-#     if i < 50:
-#         car.controlInput(np.matrix([-0.05, 50]))
+#     if i < 20:
+#         car.controlInput(np.matrix([0.3, 50]))
 #     else:
-#         car.controlInput(np.matrix([-0.05, 70]))
-#     B.append(float(car.q[2]))
+#         car.controlInput(np.matrix([0.0, 0]))
+#         # car.controlInput(np.matrix([-0.05, 70]))
+#     B.append(float(car.q[3]))
 #     print car.uk[0],car.q[3]
 #         # car.controlInput(np.matrix([0,0]))
 #
