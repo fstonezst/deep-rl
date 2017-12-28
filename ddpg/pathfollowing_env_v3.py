@@ -17,6 +17,7 @@ class PathFollowingV3(gym.Env):
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
     error_bound = 1
     history_length = 4
+    leftOrRightTime = 0
 
     def _reset(self):
         # random = self.np_random
@@ -30,6 +31,13 @@ class PathFollowingV3(gym.Env):
 
         #ERROR Cul
         self.left = random.randint(0,1)
+        if self.left:
+            PathFollowingV3.leftOrRightTime += 1
+        else:
+            PathFollowingV3.leftOrRightTime -= 1
+        print "====="+str(PathFollowingV3.leftOrRightTime)+"====="
+
+
         self.startx, self.starty = 10, 0
         self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0, 20)*0.1, 10, random.randint(30, 50)*0.1
         self.firstArcR, self.secondArcR = random.randint(30, 70) * 0.1, random.randint(30,70) * 0.1
@@ -37,8 +45,8 @@ class PathFollowingV3(gym.Env):
             self.firstArcx, self.firstArcy = self.startx-self.firstArcR, self.starty+self.firstLineLength
             self.secondArcx, self.secondArcy = self.firstArcx-self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
         else:
-            self.firstArcx, self.firstArcy = self.startx-self.firstArcR, self.starty+self.firstLineLength
-            self.secondArcx, self.secondArcy = self.firstArcx-self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
+            self.firstArcx, self.firstArcy = self.startx+self.firstArcR, self.starty+self.firstLineLength
+            self.secondArcx, self.secondArcy = self.firstArcx+self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
 
 
 
@@ -143,14 +151,9 @@ class PathFollowingV3(gym.Env):
         startx, starty = self.startx, self.starty
         firstLineLength, secondLineLength, midLineLength = self.firstLineLength, self.secondLineLength, self.midLineLength
         firstArcR, secondArcR = self.firstArcR, self.secondArcR
-        if left:
-            firstArcx, firstArcy = startx-firstArcR, starty+firstLineLength
-            secondArcx, secondArcy = firstArcx-midLineLength, firstArcy+firstArcR+secondArcR
-        else:
-            firstArcx, firstArcy = startx+firstArcR, starty+firstLineLength
-            secondArcx, secondArcy = firstArcx+midLineLength, firstArcy+firstArcR+secondArcR
-
-        yabound = starty + firstLineLength + firstArcR + secondArcR + secondLineLength
+        firstArcx, firstArcy = self.firstArcx, self.firstArcy
+        secondArcx, secondArcy = self.secondArcx, self.secondArcy
+        # yabound = starty + firstLineLength + firstArcR + secondArcR + secondLineLength
 
         if left:
             if wheely <= firstArcy:
