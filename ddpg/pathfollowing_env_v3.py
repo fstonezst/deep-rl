@@ -31,12 +31,6 @@ class PathFollowingV3(gym.Env):
 
         #ERROR Cul
         self.left = random.randint(0,1)
-        if self.left:
-            PathFollowingV3.leftOrRightTime += 1
-        else:
-            PathFollowingV3.leftOrRightTime -= 1
-        print "====="+str(PathFollowingV3.leftOrRightTime)+"====="
-
 
         self.startx, self.starty = 10, 0
         self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0, 20)*0.1, 10, random.randint(30, 50)*0.1
