@@ -5,7 +5,7 @@ import numpy as np
 from gym.utils import seeding
 from gym import spaces
 from AGV_Model import AGV
-# import random
+import random
 
 class PathFollowingV3(gym.Env):
     metadata = {
@@ -19,7 +19,7 @@ class PathFollowingV3(gym.Env):
     history_length = 4
 
     def _reset(self):
-        random = self.np_random
+        # random = self.np_random
         history_len = 4
         wheelx, wheely = random.randint(-9, 9) * 0.01 + 10, 0
         theta = random.randint(-35, 35) * 0.01 + np.pi
