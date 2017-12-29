@@ -72,14 +72,14 @@ def train(sess, env, args, actor, critic):
     critic.update_target_network()
 
     # Initialize replay memory
-    replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
-    conf = {
-        'batch_size': 32,
-        'replay_memory_size': 20000,
-        'prioritized_learnt_start': 2500,
-        'word_dim': 32,
-        'debug': False,
-    }
+    # replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
+    # conf = {
+    #     'batch_size': 32,
+    #     'replay_memory_size': 20000,
+    #     'prioritized_learnt_start': 2500,
+    #     'word_dim': 32,
+    #     'debug': False,
+    # }
 
     replay_memory_conf = {'size': int(args['buffer_size']),
             'learn_start': 10,
@@ -90,7 +90,7 @@ def train(sess, env, args, actor, critic):
 
     totalTime = 0
     ave_error = 0
-    exp_time = int(args['max_episodes'])-10
+    # exp_time = int(args['max_episodes'])-10
     oriNoiseRate, rotNoiseRate = 1, 0.8
 
 
@@ -181,8 +181,8 @@ def train(sess, env, args, actor, critic):
 
             s2, r, terminal, info = env.step(a)
 
-            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
-                              terminal, np.reshape(s2, (actor.s_dim,)))
+            # replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
+            #                   terminal, np.reshape(s2, (actor.s_dim,)))
             exp = (np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                                np.reshape(s2, (actor.s_dim,)), terminal)
             replay_memory.store(exp)
@@ -190,10 +190,11 @@ def train(sess, env, args, actor, critic):
             lastReward = r
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
-            if replay_buffer.size() > int(args['minibatch_size']):
-                s_batch, a_batch, r_batch, t_batch, s2_batch = \
-                    replay_buffer.sample_batch(int(args['minibatch_size']))
-                sample, w, e_id = Experience.sample(totalTime)
+            # if replay_buffer.size() > int(args['minibatch_size']):
+            if replay_memory.record_size > int(args['minibatch_size']):
+                # s_batch, a_batch, r_batch, t_batch, s2_batch = \
+                # replay_buffer.sample_batch(int(args['minibatch_size']))
+                sample, w, e_id = replay_memory.sample(totalTime)
                 s_batch, a_batch, r_batch, t_batch, s2_batch = convert_experience_to_separate(sample)
 
 
@@ -239,7 +240,7 @@ def train(sess, env, args, actor, critic):
                     critic.predicted_q_value: y_label
                 })
 
-                Experience.update_priority(e_id,loss)
+                replay_memory.update_priority(e_id, loss)
 
 
                 diff = y_label - predicted_q_value
