@@ -86,7 +86,7 @@ def train(sess, env, args, actor, critic):
             'partition_num': int(args['minibatch_size']),
             'total_step': 100,
             'batch_size': int(args['minibatch_size'])}
-    replay_memory = Experience.ReplayMemory(replay_memory_conf)
+    replay_memory = Experience(replay_memory_conf)
 
     totalTime = 0
     ave_error = 0
