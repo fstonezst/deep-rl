@@ -82,9 +82,9 @@ def train(sess, env, args, actor, critic):
     # }
 
     replay_memory_conf = {'size': int(args['buffer_size']),
-            'learn_start': 10,
+                          'learn_start': 100,
             'partition_num': int(args['minibatch_size']),
-            'total_step': 100,
+                          'total_step': int(args['max_episodes_len']),
             'batch_size': int(args['minibatch_size'])}
     replay_memory = Experience(replay_memory_conf)
 
