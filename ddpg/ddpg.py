@@ -51,7 +51,7 @@ def build_summaries():
 # ===========================
 #   Agent Training
 # ===========================
-def convert_experience_to_separate(self, experience):
+def convert_experience_to_separate(experience):
     s_batch = np.array([item[0] for item in experience])
     a_batch = np.array([item[1] for item in experience])
     r_batch = np.array([item[2] for item in experience])
@@ -83,7 +83,7 @@ def train(sess, env, args, actor, critic):
 
     replay_memory_conf = {'size': int(args['buffer_size']),
                           'learn_start': 100,
-            'partition_num': int(args['minibatch_size']),
+                          'partition_num': int(args['minibatch_size'] + 1),
                           'total_step': int(args['max_episodes_len']),
             'batch_size': int(args['minibatch_size'])}
     replay_memory = Experience(replay_memory_conf)
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
-    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
+    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E5)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
