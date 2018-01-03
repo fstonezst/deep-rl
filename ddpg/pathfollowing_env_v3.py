@@ -33,8 +33,12 @@ class PathFollowingV3(gym.Env):
         self.left = random.randint(0,1)
 
         self.startx, self.starty = 10, 0
-        self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0, 20)*0.1, 10, random.randint(30, 50)*0.1
-        self.firstArcR, self.secondArcR = random.randint(30, 70) * 0.1, random.randint(30,70) * 0.1
+        # self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0, 20)*0.1, 5, random.randint(30, 50)*0.1
+        self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0,
+                                                                                         20) * 0.1, 10, random.randint(
+            20, 30) * 0.1
+        # self.firstArcR, self.secondArcR = random.randint(30, 70) * 0.1, random.randint(30,70) * 0.1
+        self.firstArcR, self.secondArcR = random.choice([4, 6]), random.choice([4, 6])
         if self.left:
             self.firstArcx, self.firstArcy = self.startx-self.firstArcR, self.starty+self.firstLineLength
             self.secondArcx, self.secondArcy = self.firstArcx-self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
