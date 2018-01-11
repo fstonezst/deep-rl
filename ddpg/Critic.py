@@ -79,7 +79,8 @@ class CriticNetwork(object):
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
-        out = tflearn.fully_connected(net, 1, weights_init=w_init, bias=w_init)
+        b_init = tflearn.initializations.uniform(minval=-3.0E-4, maxval=3.0E-4)
+        out = tflearn.fully_connected(net, 1, weights_init=w_init, bias=b_init)
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):

@@ -70,8 +70,9 @@ class ActorNetwork(object):
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
+        b_init = tflearn.initializations.uniform(minval=-3.0E-4, maxval=3.0E-4)
         out = tflearn.fully_connected(
-            net, self.a_dim, activation='tanh', weights_init=w_init, bias=w_init)
+            net, self.a_dim, activation='tanh', weights_init=w_init, bias=b_init)
 
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
