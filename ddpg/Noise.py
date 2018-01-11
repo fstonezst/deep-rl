@@ -46,10 +46,10 @@ class OrnsteinUhlenbeckNoise(object):
 # OU_MU = 0. # The long run average interest rate
 #
 # ou_level = 0.
-# noise = Noise(DELTA, SIGMA, OU_A, OU_MU)
+# noise = OrnsteinUhlenbeckNoise(DELTA, SIGMA, OU_A, OU_MU)
 # record = []
 #
-# for _ in range(100):
+# for _ in range(1000):
 #     ou_level = noise.ornstein_uhlenbeck_level(ou_level)
 #     record.append(ou_level)
 #
