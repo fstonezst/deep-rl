@@ -12,6 +12,8 @@ Author: Patrick Emami
 # -- coding: utf-8 --
 import tensorflow as tf
 import numpy as np
+import sys
+sys.path.append("/home/CAD409/my_code/lib/python2.7/site-packages/gym-0.9.3-py2.7.egg")
 from gym import wrappers
 import argparse
 import pprint as pp
@@ -380,5 +382,6 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
 
     pp.pprint(args)
+
 
     main(args)
