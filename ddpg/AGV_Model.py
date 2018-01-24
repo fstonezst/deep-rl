@@ -9,16 +9,16 @@ class AGV:
     MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
     count = 0
 
-    def __init__(self, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
+    def __init__(self, wheelPos=[10,0], theta=np.pi, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
                  l=[1.22, 0.268, 0.268]):
-        self.wheelPos = [10, 0]
+        self.wheelPos = wheelPos
         self.uk = np.matrix([[0.0], [0.0]])
         self.fai = np.matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 0]])
         self.D = np.matrix([0, 0, 1]).T
         self.L = np.matrix([[0, 0, 0], [0, 0, l[0]], [0, -1 / l[0], 0]])
         self.T = np.matrix([[0, 0, Ip1]])
 
-        xita = np.pi
+        xita = theta
         x = self.wheelPos[0] - (np.cos(xita - np.pi / 2.0) * l[0])
         y = self.wheelPos[1] - (np.sin(xita - np.pi / 2.0) * l[0])
         posState = np.array([x, y, xita]).T

@@ -111,7 +111,7 @@ def train(sess, env, args, actor, critic):
         else:
             count -= 1
 
-        for j in range(4000):
+        for j in range(0, 4000):
             if args['render_env']:
                 env.render()
 
@@ -261,7 +261,8 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    if (i % 50 == 0) and isConvergence:
+                    # if (i % 20 == 0 and 500 <= i):
+                    if (i % 200 == 0 and not isConvergence) or (isConvergence and i % 10):
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
@@ -382,6 +383,5 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
 
     pp.pprint(args)
-
 
     main(args)

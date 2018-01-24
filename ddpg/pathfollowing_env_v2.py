@@ -18,7 +18,7 @@ class PathFollowingV2(gym.Env):
     history_length = 6
 
     def _reset(self):
-        self.car = AGV()
+        self.car = AGV([10,0], np.pi)
         self.totalError = 0
         self.time = 0
         self.error_record_buffer = [0] * PathFollowingV2.history_length
@@ -125,7 +125,7 @@ class PathFollowingV2(gym.Env):
         self.u1_record_buffer.append(float(self.car.uk[1]))
 
         # error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
-        error = (np.square(wheelx) + np.square(wheely)) - np.square(self.r)
+        error = np.sqrt((np.square(wheelx) + np.square(wheely))) - self.r
 
         self.totalError += abs(error)
         self.error_record_buffer.append(error)
