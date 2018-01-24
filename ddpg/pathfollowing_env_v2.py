@@ -31,7 +31,7 @@ class PathFollowingV2(gym.Env):
         self.wheelx, self.wheely = [], []
         self.action_r_store, self.action_s_store = [], []
         self.speed = []
-        self.error_reward_record, self.speed_reward_record = [], []
+        self.error_record = []
 
         errorState, u0State, u1State = [0] * 6, [0] * 6, [0] * 6
         self.state = errorState + u0State + u1State
@@ -56,7 +56,7 @@ class PathFollowingV2(gym.Env):
         self.wheelx, self.wheely = [], []
         self.action_r_store, self.action_s_store = [], []
         self.speed = []
-        self.error_reward_record, self.speed_reward_record = [], []
+        self.error_record, self.speed_reward_record = [], []
 
         self.buffer_size = 10
         # self.min_position = -1
@@ -126,6 +126,7 @@ class PathFollowingV2(gym.Env):
 
         # error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
         error = np.sqrt((np.square(wheelx) + np.square(wheely))) - self.r
+        self.error_record.append(error)
 
         self.totalError += abs(error)
         self.error_record_buffer.append(error)
@@ -153,8 +154,6 @@ class PathFollowingV2(gym.Env):
 
         reward = speed_reward + error_reward
 
-        self.speed_reward_record.append(-speed_reward)
-        self.error_reward_record.append(-error_reward)
 
         # if abs(diff1) > 0.01:
         #     reward += (1-ratio) * abs(actionDiff[0])
@@ -170,6 +169,6 @@ class PathFollowingV2(gym.Env):
                                                          "action": [self.action_r_store, self.action_s_store],
                                                          "wheel": [self.wheelx, self.wheely],
                                                          "speed": self.speed,
-                                                         "reward": [self.speed_reward_record, self.error_reward_record]}
+                                                         "error": self.error_record}
 
         return np.array(self.state), -reward, done, {"result": []}

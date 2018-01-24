@@ -29,9 +29,9 @@ Y = np.arange(start, end, step)
 X, Y = np.meshgrid(X, Y)
 
 # total reward
-# Z = np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y))
+Z = np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y))
 #speed reward proportion
-Z = np.matrix(map(speed_fun, Y))/(np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y)))
+# Z = np.matrix(map(speed_fun, Y))/(np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y)))
 # diff
 # Z = np.matrix(map(error_fun, X)) - np.matrix(map(speed_fun, Y))
 

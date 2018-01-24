@@ -7,7 +7,8 @@ def show(i):
     moveStorex, moveStorey=[], []
     wheelx, wheely = [], []
     action_r, action_s =[], []
-    speed_reward, error_reward, total_reward = [], [], []
+    # error_x, error_value, total_reward = [], [], []
+    error_value = []
     path=sys.argv[1]
 
     with open(path+'movePath'+str(i)+'.csv','rb') as f:
@@ -28,12 +29,18 @@ def show(i):
             action_r.append(line[0])
             action_s.append(line[1])
 
-    with open(path+'reward'+str(i)+'.csv','rb') as f:
+    with open(path+'error'+str(i)+'.csv','rb') as f:
         read = csv.reader(f)
         for line in read:
-            speed_reward.append(line[0])
-            error_reward.append(line[1])
-            total_reward.append(float(line[0]) + float(line[1]))
+            error_value.append(line[0])
+
+    # with open(path+'reward'+str(i)+'.csv','rb') as f:
+    #     read = csv.reader(f)
+    #     for line in read:
+    #         speed_reward.append(line[0])
+    #         error_reward.append(line[1])
+    #         total_reward.append(float(line[0]) + float(line[1]))
+
 
 
     fig = plt.figure()
@@ -46,9 +53,9 @@ def show(i):
     ax.plot(wheelx, wheely,'r-*',label='wheel_path')
     ax2.plot(action_r,'y-o',label='dir')
     ax1.plot(action_s,'r-*',label='speed')
-    ax3.plot(error_reward,'r-o', label='error_reward')
-    ax3.plot(speed_reward,'b-*', label='speed_reward')
-    ax3.plot(total_reward,'y-*', label='total_reward')
+    ax3.plot(error_value,'r-o', label='error_reward')
+
+    # ax3.plot(total_reward,'y-*', label='total_reward')
     cir1 = Circle(xy=(0.0, 0.0), radius=10, alpha=0.4)
     ax.add_patch(cir1)
     # ax.plot(cir1, 'y-')
@@ -58,4 +65,4 @@ def show(i):
 if __name__=="__main__":
     import sys
     # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    show(1000)
+    show(50)

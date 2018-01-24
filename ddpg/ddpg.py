@@ -111,7 +111,7 @@ def train(sess, env, args, actor, critic):
         else:
             count -= 1
 
-        for j in range(0, 4000):
+        for j in range(1, 4000):
             if args['render_env']:
                 env.render()
 
@@ -125,7 +125,9 @@ def train(sess, env, args, actor, critic):
 
             # if i < exp_time:
             # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
-            if not isConvergence:
+
+            # if not isConvergence:
+            if True:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -147,14 +149,14 @@ def train(sess, env, args, actor, critic):
                 #
                 # a = np.array([orientation, rotation])
                 a = dirOut + noise
-            else:
-                if count == 0:
-                    env.setCarMess(500 + random.randint(100, 500))
-                    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
-                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
-                    print "===================="+str(env.car.mess)+"================="
-                    count = 10
-                a = dirOut
+            # else:
+            #     if count == 0:
+            #         env.setCarMess(500 + random.randint(100, 500))
+            #         env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
+                    # print "===================="+str(env.car.mess)+"================="
+                    # count = 10
+                # a = dirOut
 
             # total_noise += noise
 
@@ -195,15 +197,15 @@ def train(sess, env, args, actor, critic):
                 #     critic.loss: loss
                 # })
 
-                # predicted_q_value, _ = critic.train(
-                #     # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                #     s_batch, a_batch, y_label)
-                if not isConvergence:
-                    predicted_q_value, _ = critic.train(
-                        # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                        s_batch, a_batch, y_label)
-                else:
-                    predicted_q_value = critic.predict(s_batch, a_batch)
+                predicted_q_value, _ = critic.train(
+                    # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                    s_batch, a_batch, y_label)
+                # if not isConvergence:
+                #     predicted_q_value, _ = critic.train(
+                #         s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                        # s_batch, a_batch, y_label)
+                # else:
+                #     predicted_q_value = critic.predict(s_batch, a_batch)
 
                 loss = sess.run([critic.loss], feed_dict={
                     critic.inputs: s_batch,
@@ -220,13 +222,13 @@ def train(sess, env, args, actor, critic):
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                # a_outs = actor.predict(s_batch)
-                # grads = critic.action_gradients(s_batch, a_outs)
-                # actor.train(s_batch, grads[0])
-                if not isConvergence:
-                    a_outs = actor.predict(s_batch)
-                    grads = critic.action_gradients(s_batch, a_outs)
-                    actor.train(s_batch, grads[0])
+                a_outs = actor.predict(s_batch)
+                grads = critic.action_gradients(s_batch, a_outs)
+                actor.train(s_batch, grads[0])
+                # if not isConvergence:
+                #     a_outs = actor.predict(s_batch)
+                #     grads = critic.action_gradients(s_batch, a_outs)
+                #     actor.train(s_batch, grads[0])
 
                 # Update target networks
                 actor.update_target_network()
@@ -243,7 +245,7 @@ def train(sess, env, args, actor, critic):
                 wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
                 action_r, action_s = info.get("action")[0], info.get("action")[1]
                 speed = info.get("speed")
-                speed_reward, error_reward = info.get("reward")[0], info.get("reward")[1]
+                error_record = info.get("error")
 
                 avgError = info.get("avgError")
 
@@ -261,8 +263,8 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    # if (i % 20 == 0 and 500 <= i):
-                    if (i % 200 == 0 and not isConvergence) or (isConvergence and i % 10):
+                    # if (not isConvergence and i > 500 and (i % 20 == 0)) or (isConvergence and (i % 10 == 0)):
+                    if (not isConvergence and (i % 50 == 0)) or (isConvergence):
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
@@ -278,10 +280,10 @@ def train(sess, env, args, actor, critic):
                             for x,y in zip(action_r,action_s):
                                 csv_writer.writerow([x,y])
 
-                        with open('reward'+str(i)+'.csv','wb') as f:
+                        with open('error'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
-                            for x,y in zip(speed_reward,error_reward):
-                                csv_writer.writerow([x,y])
+                            for x in error_record:
+                                csv_writer.writerow([x])
 
                 if j > 0:
                     ave_error = info.get("avgError")
