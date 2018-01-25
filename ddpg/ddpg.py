@@ -60,6 +60,8 @@ def train(sess, env, args, actor, critic):
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
 
+    saver = tf.train.Saver()
+
     # Initialize target network weights
     actor.update_target_network()
     critic.update_target_network()
@@ -150,7 +152,9 @@ def train(sess, env, args, actor, critic):
                 # a = np.array([orientation, rotation])
                 a = dirOut + noise
             else:
-                # if count == 0:
+                if count == 0:
+                    saver.save(sess,'model_'+str(i))
+                    count = -1
                 #     env.setCarMess(500 + random.randint(100, 500))
                 #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
                 #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
@@ -306,6 +310,58 @@ def train(sess, env, args, actor, critic):
                 break
     writer.close()
 
+def predictWork(sess, model, env, args, actor):
+
+    saver = tf.train.Saver()
+    sess.run(tf.global_variables_initializer())
+    saver.restore(sess, model)
+
+    for i in range(1):
+        s, info, len = env.reset(), None, 0
+        for j in range(1, 1000):
+            if args['render_env']:
+                env.render()
+
+            a = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            s, r, terminal, info = env.step(a)
+
+            if terminal:
+                len = j
+                break
+
+        moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
+        wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+        action_r, action_s = info.get("action")[0], info.get("action")[1]
+        speed = info.get("speed")
+        error_record = info.get("error")
+
+
+        with open('movePath'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x,y in zip(moveStorex,moveStorey):
+                csv_writer.writerow([x,y])
+
+        with open('wheelPath'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x,y in zip(wheelx,wheely):
+                csv_writer.writerow([x,y])
+
+        with open('action'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x,y in zip(action_r,action_s):
+                csv_writer.writerow([x,y])
+
+        with open('error'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x in error_record:
+                csv_writer.writerow([x])
+
+        if len > 0:
+            ave_error = info.get("avgError")
+            print(
+                # 'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
+                'Episode: {:d} | times:{:d} | ave_error: {:.4f} | ave_speed: {:.4f}'.format(
+                    i, len,  ave_error, sum(speed)/float(j)))
 
 def main(args):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -342,7 +398,10 @@ def main(args):
             else:
                 env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
-        train(sess, env, args, actor, critic)
+        if args['model'] == '':
+            train(sess, env, args, actor, critic)
+        else:
+            predictWork(sess, str(args['model']), env, args, actor)
 
         if args['use_gym_monitor']:
             env.close()
@@ -372,6 +431,7 @@ if __name__ == '__main__':
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
     parser.add_argument('--gpu', help='gpu index', default='0')
+    parser.add_argument('--model', help='restore model', default='')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
