@@ -20,6 +20,7 @@ class PathFollowingV2(gym.Env):
     def _reset(self):
         self.car = AGV([10,0], np.pi)
         self.totalError = 0
+        self.maxError = 0
         self.time = 0
         self.error_record_buffer = [0] * PathFollowingV2.history_length
         self.u0_record_buffer = [0] * PathFollowingV2.history_length
@@ -43,6 +44,7 @@ class PathFollowingV2(gym.Env):
     def __init__(self):
         self.car = AGV()
         self.totalError = 0
+        self.maxError = 0
         self.time = 0
 
         self.error_record_buffer = [0] * PathFollowingV2.history_length
@@ -129,6 +131,8 @@ class PathFollowingV2(gym.Env):
         self.error_record.append(error)
 
         self.totalError += abs(error)
+        if abs(error) > self.maxError:
+            self.maxError = abs(error)
         self.error_record_buffer.append(error)
         # self.error_sum += error
         # self.error_abs_sum += abs(error)
@@ -164,7 +168,8 @@ class PathFollowingV2(gym.Env):
 
         if done:
             return np.array(self.state), -reward, done, {"result": [], \
-                                                         "avgError": self.totalError / float(self.time),
+                                                         # "avgError": self.totalError / float(self.time),
+                                                         "avgError": self.maxError,
                                                          "moveStore": [self.moveStorex, self.moveStorey],
                                                          "action": [self.action_r_store, self.action_s_store],
                                                          "wheel": [self.wheelx, self.wheely],
