@@ -105,7 +105,7 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 4.0E-3 or ave_err > 0.1 or last_times < env.max_time or lastReward < -0.1 or i < 500:
+        if last_loss > 4.0E-3 or ave_err > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
         else:
@@ -126,8 +126,8 @@ def train(sess, env, args, actor, critic):
             # if i < exp_time:
             # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
 
-            # if not isConvergence:
-            if True:
+            if not isConvergence:
+            # if True:
                 # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
                 # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -149,14 +149,14 @@ def train(sess, env, args, actor, critic):
                 #
                 # a = np.array([orientation, rotation])
                 a = dirOut + noise
-            # else:
-            #     if count == 0:
-            #         env.setCarMess(500 + random.randint(100, 500))
-            #         env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
-                    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
-                    # print "===================="+str(env.car.mess)+"================="
-                    # count = 10
-                # a = dirOut
+            else:
+                # if count == 0:
+                #     env.setCarMess(500 + random.randint(100, 500))
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
+                #     print "===================="+str(env.car.mess)+"================="
+                #     count = 10
+                a = dirOut
 
             # total_noise += noise
 
@@ -197,15 +197,15 @@ def train(sess, env, args, actor, critic):
                 #     critic.loss: loss
                 # })
 
-                predicted_q_value, _ = critic.train(
-                    # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                    s_batch, a_batch, y_label)
-                # if not isConvergence:
-                #     predicted_q_value, _ = critic.train(
-                #         s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                        # s_batch, a_batch, y_label)
-                # else:
-                #     predicted_q_value = critic.predict(s_batch, a_batch)
+                # predicted_q_value, _ = critic.train(
+                #     s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                    # s_batch, a_batch, y_label)
+                if not isConvergence:
+                    predicted_q_value, _ = critic.train(
+                        # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
+                        s_batch, a_batch, y_label)
+                else:
+                    predicted_q_value = critic.predict(s_batch, a_batch)
 
                 loss = sess.run([critic.loss], feed_dict={
                     critic.inputs: s_batch,
@@ -222,13 +222,13 @@ def train(sess, env, args, actor, critic):
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                a_outs = actor.predict(s_batch)
-                grads = critic.action_gradients(s_batch, a_outs)
-                actor.train(s_batch, grads[0])
-                # if not isConvergence:
-                #     a_outs = actor.predict(s_batch)
-                #     grads = critic.action_gradients(s_batch, a_outs)
-                #     actor.train(s_batch, grads[0])
+                # a_outs = actor.predict(s_batch)
+                # grads = critic.action_gradients(s_batch, a_outs)
+                # actor.train(s_batch, grads[0])
+                if not isConvergence:
+                    a_outs = actor.predict(s_batch)
+                    grads = critic.action_gradients(s_batch, a_outs)
+                    actor.train(s_batch, grads[0])
 
                 # Update target networks
                 actor.update_target_network()
@@ -263,8 +263,9 @@ def train(sess, env, args, actor, critic):
 
                     writer.flush()
 
-                    # if (not isConvergence and i > 500 and (i % 20 == 0)) or (isConvergence and (i % 10 == 0)):
-                    if (not isConvergence and (i % 50 == 0)) or (isConvergence):
+                    # if (not isConvergence and i > 450 and (i % 30 == 0)) or (isConvergence and (i % 20 == 0)):
+                    if (not isConvergence and (i % 100 == 0)) or (isConvergence and (i % 10 == 0)):
+
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
@@ -352,8 +353,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
-    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
+    # parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
+    # parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
+    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-5)
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-4)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
@@ -375,10 +378,10 @@ if __name__ == '__main__':
 
     # parser.set_defaults(use_gym_monitor=True)
     parser.set_defaults(use_gym_monitor=False)
-    parser.set_defaults(max_episodes=5.0E3)
+    parser.set_defaults(max_episodes=1.0E4)
     parser.set_defaults(max_episodes_len=1.0E5)
-    # parser.set_defaults(minibatch_size=64)
-    parser.set_defaults(minibatch_size=128)
+    parser.set_defaults(minibatch_size=64)
+    # parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 

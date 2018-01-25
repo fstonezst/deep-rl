@@ -59,7 +59,8 @@ class CriticNetwork(object):
 
         # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        inputLayer = tflearn.layers.normalization.batch_normalization(inputs)
+        # inputLayer = tflearn.layers.normalization.batch_normalization(inputs)
+        inputLayer = inputs
 
         # action input
         action = tflearn.input_data(shape=[None, self.a_dim])
@@ -68,7 +69,7 @@ class CriticNetwork(object):
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
         # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
         net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
-        net = tflearn.layers.normalization.batch_normalization(net)
+        # net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
         # Add the action tensor in the 2nd hidden layer
