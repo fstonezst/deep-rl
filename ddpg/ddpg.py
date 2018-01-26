@@ -18,6 +18,7 @@ from gym import wrappers
 import argparse
 import pprint as pp
 from pathfollowing_env_v2 import PathFollowingV2
+from pathfollowing_env_v1 import PathFollowingV1
 from replay_buffer import ReplayBuffer
 from Critic import CriticNetwork
 from Actor import ActorNetwork
@@ -40,8 +41,12 @@ def build_summaries():
     tf.summary.scalar("train_loss", train_loss)
     error = tf.Variable(0.)
     tf.summary.scalar("error", error)
+    train_g = tf.Variable(0.)
+    tf.summary.scalar("gradient", train_g)
+    train_g2 = tf.Variable(0.)
+    tf.summary.scalar("gradient2", train_g2)
 
-    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error]
+    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, train_g2]
     summary_ops = tf.summary.merge_all()
     # summary_ops = tf.summary.merge_all_summaries()
 
@@ -90,8 +95,9 @@ def train(sess, env, args, actor, critic):
 
         ep_reward = 0
         ep_ave_max_q = 0
-        ave_diff = 0
         total_loss = 0
+        total_gradient = 0
+        total_gradient2 = 0
 
 
         # DELTA  The rate of change (time)
@@ -118,20 +124,9 @@ def train(sess, env, args, actor, critic):
                 env.render()
 
             # Added exploration noise
-            # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-
-            # noise = actor_noise()
-
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
-            # if i < exp_time:
-            # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
-
             if not isConvergence:
-            # if True:
-                # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
-                # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
                 rotation, rotationNoise = dirOut[0][1], rotationN.ornstein_uhlenbeck_level(rotationNoise)
                 if abs(orientation) <= 0.01:
@@ -145,11 +140,6 @@ def train(sess, env, args, actor, critic):
                 noise = np.array([orientationNoise, rotationNoise])
                 total_noise0.append(orientationNoise)
                 total_noise1.append(rotationNoise)
-                #
-                # orientation += orientationNoise
-                # rotation += rotationNoise
-                #
-                # a = np.array([orientation, rotation])
                 a = dirOut + noise
             else:
                 if count == 0:
@@ -162,8 +152,6 @@ def train(sess, env, args, actor, critic):
                 #     count = 10
                 a = dirOut
 
-            # total_noise += noise
-
             s2, r, terminal, info = env.step(a)
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
@@ -174,40 +162,44 @@ def train(sess, env, args, actor, critic):
             if replay_buffer.size() > int(args['minibatch_size']):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
                     replay_buffer.sample_batch(int(args['minibatch_size']))
+                sb, ab = np.array([np.reshape(s, (actor.s_dim,))]), np.array([np.reshape(a, (actor.a_dim,))])
+                rb, tb = np.array([r]), np.array([terminal])
+                s2b = np.array([np.reshape(s2, (actor.s_dim,))])
+
+                # np.append(s_batch,np.reshape(s, (actor.s_dim,)))
+                # np.append(a_batch,np.reshape(a, (actor.a_dim,)))
+                # np.append(r_batch,r)
+                # np.append(t_batch,terminal)
+                # np.append(s2_batch,np.reshape(s2, (actor.s_dim,)))
 
                 # Calculate targets
                 target_q = critic.predict_target(
                     s2_batch, actor.predict_target(s2_batch))
 
+                target_qvalue = critic.predict_target(
+                    s2b, actor.predict_target(s2b)) ##
+
                 y_i = []
+                y = 0 ##
+
                 for k in range(int(args['minibatch_size'])):
+                # for k in range(len(s_batch)):
                     if t_batch[k]:
                         y_i.append(r_batch[k])
+                        y = r ##
                     else:
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
+                        y = r + critic.gamma * target_qvalue ##
 
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
+                y = np.reshape(y, (1, 1))
 
                 # Update the critic given the targets
-                # merged = tf.merge_all_summaries()
-
-                # loss = sess.run([critic.loss], feed_dict={
-                #     critic.predicted_q_value: np.reshape(y_i, (int(args['minibatch_size']), 1)),
-                #     critic.inputs: s_batch,
-                #     critic.action: a_batch
-                # })
-                #
-                # predicted_q_value = sess.run([critic.optimize], feed_dict={
-                #     critic.loss: loss
-                # })
-
-                # predicted_q_value, _ = critic.train(
-                #     s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                    # s_batch, a_batch, y_label)
                 if not isConvergence:
                     predicted_q_value, _ = critic.train(
-                        # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
                         s_batch, a_batch, y_label)
+
+                    critic.train(sb, ab, y) ##
                 else:
                     predicted_q_value = critic.predict(s_batch, a_batch)
 
@@ -217,22 +209,26 @@ def train(sess, env, args, actor, critic):
                     critic.predicted_q_value: y_label
                 })
 
-
-                diff = y_label - predicted_q_value
-                diff = abs(diff)
-                ave_diff = sum(diff)[0] / float(len(diff))
-
                 ep_ave_max_q += np.amax(predicted_q_value)
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                # a_outs = actor.predict(s_batch)
-                # grads = critic.action_gradients(s_batch, a_outs)
-                # actor.train(s_batch, grads[0])
+                aGrads1, aGrads2 = None,None
                 if not isConvergence:
                     a_outs = actor.predict(s_batch)
                     grads = critic.action_gradients(s_batch, a_outs)
                     actor.train(s_batch, grads[0])
+
+                    grads = critic.action_gradients(sb, ab) ##
+                    actor.train(sb, grads[0]) ##
+
+                    aGrads1 = map(lambda x:x[0],grads[0])
+                    aGrads2 = map(lambda x:x[1],grads[0])
+
+                if np.amax(aGrads1) is not None:
+                    total_gradient += np.amax(aGrads1)
+                if np.amax(aGrads2) is not None:
+                    total_gradient2 += np.amax(aGrads2)
 
                 # Update target networks
                 actor.update_target_network()
@@ -260,7 +256,9 @@ def train(sess, env, args, actor, critic):
                         summary_vars[0]: ep_reward / float(j),
                         summary_vars[1]: ep_ave_max_q / float(j),
                         summary_vars[2]: total_loss / float(j),
-                        summary_vars[3]: avgError
+                        summary_vars[3]: avgError,
+                        summary_vars[4]: total_gradient / float(j),
+                        summary_vars[5]: total_gradient2 / float(j)
                     })
 
                     writer.add_summary(summary_str, i)
@@ -291,16 +289,9 @@ def train(sess, env, args, actor, critic):
                                 csv_writer.writerow([x])
 
                 if j > 0:
-                    ave_error = info.get("avgError")
-                    # print max(total_noise0), max(total_noise1)
-                    # if i < exp_time:
-                    # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
                     if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
-                    # print(
-                    # '| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f} | loss: {:.4f}'.format(
-                    #     int(ep_reward) / float(j), i, totalTime, (ep_ave_max_q / float(j)), ave_error, float(ave_diff), (total_loss / float(j))))
                     print(
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), ave_error, sum(speed)/float(j), max(speed)))
@@ -318,6 +309,7 @@ def predictWork(sess, model, env, args, actor):
 
     for i in range(1):
         s, info, len = env.reset(), None, 0
+        env.setMaxTime(900)
         for j in range(1, 1000):
             if args['render_env']:
                 env.render()
@@ -371,7 +363,13 @@ def main(args):
 
         # env = gym.make(args['env'])
         # env = PathFollowing()
-        env = PathFollowingV2()
+        if args['envno'] == '2':
+            env = PathFollowingV2()
+        elif args['envno'] == '1':
+            env = PathFollowingV1()
+        else:
+            env = PathFollowingV2()
+
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -432,6 +430,7 @@ if __name__ == '__main__':
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
     parser.add_argument('--gpu', help='gpu index', default='0')
     parser.add_argument('--model', help='restore model', default='')
+    parser.add_argument('--envno', help='env NO.', default='2')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)

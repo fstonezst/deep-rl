@@ -14,7 +14,6 @@ class PathFollowingV2(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 1
     history_length = 6
 
     def _reset(self):
@@ -41,7 +40,7 @@ class PathFollowingV2(gym.Env):
 
         return np.array(self.state)
 
-    def __init__(self):
+    def __init__(self, max_time=300, errorBound=1):
         self.car = AGV()
         self.totalError = 0
         self.maxError = 0
@@ -64,7 +63,8 @@ class PathFollowingV2(gym.Env):
         # self.min_position = -1
         # self.max_position = 1
 
-        self.max_time = 300
+        self.max_time = max_time
+        self.error_bound = errorBound
         self.viewer = None
 
         # self.path = [math.sin(x*(math.pi/180.0)) for x in range(0, 512)]
@@ -82,7 +82,7 @@ class PathFollowingV2(gym.Env):
         # y_max, y_min = 10, -10
         # xita_max, xita_min = np.pi, -np.pi
         B_max, B_min = PathFollowingV2.max_angle, PathFollowingV2.min_angle
-        Error_max, Error_min = PathFollowingV2.error_bound, -PathFollowingV2.error_bound
+        Error_max, Error_min = self.error_bound, -self.error_bound
         speed_min, speed_max = PathFollowingV2.min_speed, PathFollowingV2.max_speed
 
         # self.observation_min = np.array([x_min, y_min, xita_min, B_min, Error_min, speed_min])
@@ -99,6 +99,9 @@ class PathFollowingV2(gym.Env):
 
     def setCarMess(self, m):
         self.car.setMess(m)
+
+    def setMaxTime(self, maxTime):
+        self.max_time = maxTime
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -164,7 +167,7 @@ class PathFollowingV2(gym.Env):
         # if abs(diff2) > 100:
         #     reward += (1-ratio) * abs(actionDiff[1])
 
-        done = True if self.time > self.max_time or abs(error) > PathFollowingV2.error_bound else False
+        done = True if self.time > self.max_time or abs(error) > self.error_bound else False
 
         if done:
             return np.array(self.state), -reward, done, {"result": [], \
@@ -176,4 +179,6 @@ class PathFollowingV2(gym.Env):
                                                          "speed": self.speed,
                                                          "error": self.error_record}
 
-        return np.array(self.state), -reward, done, {"result": []}
+        return np.array(self.state), -reward, done, {"result": [],
+                                                     "Error": self.maxError
+                                                     }

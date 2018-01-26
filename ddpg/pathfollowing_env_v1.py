@@ -95,6 +95,9 @@ class PathFollowingV1(gym.Env):
         self._seed()
         self._reset()
 
+    def setMaxTime(self,maxTime):
+        self.max_time=maxTime
+
     def setCarMess(self, m):
         self.car.setMess(m)
 
