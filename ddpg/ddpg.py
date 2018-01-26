@@ -162,9 +162,10 @@ def train(sess, env, args, actor, critic):
             if replay_buffer.size() > int(args['minibatch_size']):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
                     replay_buffer.sample_batch(int(args['minibatch_size']))
-                sb, ab = np.array([np.reshape(s, (actor.s_dim,))]), np.array([np.reshape(a, (actor.a_dim,))])
-                rb, tb = np.array([r]), np.array([terminal])
-                s2b = np.array([np.reshape(s2, (actor.s_dim,))])
+
+                # sb, ab = np.array([np.reshape(s, (actor.s_dim,))]), np.array([np.reshape(a, (actor.a_dim,))])
+                # rb, tb = np.array([r]), np.array([terminal])
+                # s2b = np.array([np.reshape(s2, (actor.s_dim,))])
 
                 # np.append(s_batch,np.reshape(s, (actor.s_dim,)))
                 # np.append(a_batch,np.reshape(a, (actor.a_dim,)))
@@ -176,30 +177,30 @@ def train(sess, env, args, actor, critic):
                 target_q = critic.predict_target(
                     s2_batch, actor.predict_target(s2_batch))
 
-                target_qvalue = critic.predict_target(
-                    s2b, actor.predict_target(s2b)) ##
+                # target_qvalue = critic.predict_target(
+                #     s2b, actor.predict_target(s2b)) ##
 
                 y_i = []
-                y = 0 ##
+                # y = 0 ##
 
                 for k in range(int(args['minibatch_size'])):
                 # for k in range(len(s_batch)):
                     if t_batch[k]:
                         y_i.append(r_batch[k])
-                        y = r ##
+                        # y = r ##
                     else:
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
-                        y = r + critic.gamma * target_qvalue ##
+                        # y = r + critic.gamma * target_qvalue ##
 
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
-                y = np.reshape(y, (1, 1))
+                # y = np.reshape(y, (1, 1)) ##
 
                 # Update the critic given the targets
                 if not isConvergence:
                     predicted_q_value, _ = critic.train(
                         s_batch, a_batch, y_label)
 
-                    critic.train(sb, ab, y) ##
+                    # critic.train(sb, ab, y) ##
                 else:
                     predicted_q_value = critic.predict(s_batch, a_batch)
 
@@ -219,8 +220,8 @@ def train(sess, env, args, actor, critic):
                     grads = critic.action_gradients(s_batch, a_outs)
                     actor.train(s_batch, grads[0])
 
-                    grads = critic.action_gradients(sb, ab) ##
-                    actor.train(sb, grads[0]) ##
+                    # grads = critic.action_gradients(sb, ab) ##
+                    # actor.train(sb, grads[0]) ##
 
                     aGrads1 = map(lambda x:x[0],grads[0])
                     aGrads2 = map(lambda x:x[1],grads[0])
@@ -294,7 +295,7 @@ def train(sess, env, args, actor, critic):
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     print(
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
-                           int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), ave_error, sum(speed)/float(j), max(speed)))
+                           int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
                 ave_err = ave_error
                 last_times = j

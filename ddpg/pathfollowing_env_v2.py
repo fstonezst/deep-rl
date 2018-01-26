@@ -40,7 +40,7 @@ class PathFollowingV2(gym.Env):
 
         return np.array(self.state)
 
-    def __init__(self, max_time=300, errorBound=1):
+    def __init__(self, max_time=600, errorBound=1):
         self.car = AGV()
         self.totalError = 0
         self.maxError = 0
@@ -157,7 +157,7 @@ class PathFollowingV2(gym.Env):
         diff1, diff2 = actionDiff[0], actionDiff[1]
 
         error_reward = np.square(error) * 8.0E-1
-        speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
+        speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)
 
         reward = speed_reward + error_reward
 
