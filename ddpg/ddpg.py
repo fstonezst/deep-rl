@@ -307,11 +307,12 @@ def predictWork(sess, model, env, args, actor):
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
+    times = 2000
 
     for i in range(1):
         s, info, len = env.reset(), None, 0
-        env.setMaxTime(900)
-        for j in range(1, 1000):
+        env.setMaxTime(times-1)
+        for j in range(1, times):
             if args['render_env']:
                 env.render()
 
@@ -400,7 +401,7 @@ def main(args):
         if args['model'] == '':
             train(sess, env, args, actor, critic)
         else:
-            predictWork(sess, str(args['model']), env, args, actor)
+            predictWork(sess, 'model_'+str(args['model']), env, args, actor)
 
         if args['use_gym_monitor']:
             env.close()
@@ -417,7 +418,7 @@ if __name__ == '__main__':
     # parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-4)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
-    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
+    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=2.0E4)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
