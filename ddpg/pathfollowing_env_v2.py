@@ -24,7 +24,7 @@ class PathFollowingV2(gym.Env):
         hislength = self.historyLength
         self.error_buffer = [0] * hislength
         self.beta_buffer = [0] * hislength
-        self.theta_buffer = [0] * hislength
+        # self.theta_buffer = [0] * hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
 
@@ -37,9 +37,11 @@ class PathFollowingV2(gym.Env):
         self.speed_record = []
         self.error_record = []
 
-        errorState, betaState, thetaState = [0] * hislength, [float(self.car.q[3])] * hislength, [float(self.car.q[2])] * hislength
+        # errorState, betaState, thetaState = [0] * hislength, [float(self.car.q[3])] * hislength, [float(self.car.q[2])] * hislength
+        errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
         u0State, u1State = [0] * hislength, [0] * hislength
-        self.state = errorState + betaState + thetaState + u0State + u1State
+        # self.state = errorState + betaState + thetaState + u0State + u1State
+        self.state = errorState + betaState + u0State + u1State
 
         return np.array(self.state)
 
@@ -52,7 +54,7 @@ class PathFollowingV2(gym.Env):
         self.historyLength = hislength
         self.error_buffer = [0] * hislength
         self.beta_buffer = [0] * hislength
-        self.theta_buffer = [0] * hislength
+        # self.theta_buffer = [0] * hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
 
@@ -130,7 +132,7 @@ class PathFollowingV2(gym.Env):
 
         self.u0_buffer.append(speed)
         self.u1_buffer.append(orientationSpeed)
-        self.theta_buffer.append(theta)
+        # self.theta_buffer.append(theta)
         self.beta_buffer.append(beta)
 
 
@@ -145,12 +147,13 @@ class PathFollowingV2(gym.Env):
         hislen = self.historyLength
         if len(self.error_buffer) > hislen:
             self.error_buffer.pop(0)
-            self.theta_buffer.pop(0)
+            # self.theta_buffer.pop(0)
             self.beta_buffer.pop(0)
             self.u0_buffer.pop(0)
             self.u1_buffer.pop(0)
 
-        st = self.error_buffer + self.theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        # st = self.error_buffer + self.theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
         self.state = np.array(st)
 
         # diff1, diff2 = actionDiff[0], actionDiff[1]
