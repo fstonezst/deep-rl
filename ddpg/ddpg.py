@@ -311,7 +311,7 @@ def predictWork(sess, model, env, args, actor):
 
     for i in range(1):
         s, info, len = env.reset(), None, 0
-        env.setMaxTime(times-1)
+        env.setMaxTime(times-10)
         for j in range(1, times):
             if args['render_env']:
                 env.render()
