@@ -94,6 +94,7 @@ class PathFollowingV3(gym.Env):
         self.action_r_record, self.action_s_record = [], []
         self.speed_record = []
         self.error_reward_record, self.speed_reward_record = [], []
+        self.error_record = []
 
         # self.r = 10
 
@@ -254,6 +255,7 @@ class PathFollowingV3(gym.Env):
         self.wheel_x_record.append(wheelx)
         self.wheel_y_record.append(wheely)
         self.speed_record.append(speed)
+        self.error_record = [error]
 
         # actionDiff = action - self.lastAction
         # self.lastAction = action
@@ -271,6 +273,7 @@ class PathFollowingV3(gym.Env):
                                                          "action": [self.action_r_record, self.action_s_record],
                                                          "wheel": [self.wheel_x_record, self.wheel_y_record],
                                                          "speed": self.speed_record,
+                                                         "error": self.error_record,
                                                          "reward": [self.speed_reward_record, self.error_reward_record]}
 
         return np.array(self.state), -reward, done, {"result": []}
