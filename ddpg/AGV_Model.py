@@ -116,6 +116,11 @@ class AGV:
             self.uk[1] = 0
             self.q[3] = AGV.MAX_ANGLE
 
+        theta = abs(float(self.q[2])) % (2*np.pi)
+        if float(self.q[2]) < 0:
+            theta = 2*np.pi - theta
+        self.q[2] = theta
+
         if self.uk[0] > AGV.MAX_SPEED:
             self.uk[0] = AGV.MAX_SPEED
         elif self.uk[0] < 0:
