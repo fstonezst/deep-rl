@@ -12,10 +12,12 @@ Author: Patrick Emami
 # -- coding: utf-8 --
 import tensorflow as tf
 import numpy as np
+import sys
+sys.path.append("/home/CAD409/my_code/lib/python2.7/site-packages/gym-0.9.3-py2.7.egg")
 from gym import wrappers
 import argparse
 import pprint as pp
-# from pathfollowing_env_v2 import PathFollowingV2
+from pathfollowing_env_v2 import PathFollowingV2
 from pathfollowing_env_v3 import PathFollowingV3
 from replay_buffer import ReplayBuffer
 from Critic import CriticNetwork
@@ -39,8 +41,12 @@ def build_summaries():
     tf.summary.scalar("train_loss", train_loss)
     error = tf.Variable(0.)
     tf.summary.scalar("error", error)
+    train_g = tf.Variable(0.)
+    tf.summary.scalar("gradient", train_g)
+    train_g2 = tf.Variable(0.)
+    tf.summary.scalar("gradient2", train_g2)
 
-    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error]
+    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, train_g2]
     summary_ops = tf.summary.merge_all()
     # summary_ops = tf.summary.merge_all_summaries()
 
@@ -58,6 +64,8 @@ def train(sess, env, args, actor, critic):
 
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
+
+    saver = tf.train.Saver()
 
     # Initialize target network weights
     actor.update_target_network()
@@ -87,15 +95,17 @@ def train(sess, env, args, actor, critic):
 
         ep_reward = 0
         ep_ave_max_q = 0
-        ave_diff = 0
         total_loss = 0
+        total_gradient = 0
+        total_gradient2 = 0
 
 
         # DELTA  The rate of change (time)
         # SIGMA  Volatility of the stochastic processes
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
-        orientationN, rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate), OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
+        orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
+        rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
 
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
@@ -103,29 +113,20 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 4.0E-3 or ave_err > 0.1 or last_times < env.max_time or lastReward < -0.1 or i < 500:
+        if last_loss > 4.0E-3 or ave_err > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
         else:
             count -= 1
 
-        for j in range(4000):
+        for j in range(1, 4000):
             if args['render_env']:
                 env.render()
 
             # Added exploration noise
-            # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-
-            # noise = actor_noise()
-
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + noise
             dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
-            # if i < exp_time:
-            # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
             if not isConvergence:
-                # orientation,orientationNoise = dirOut[0][0], noise[0] * AGV.MAX_ORIENTATION * 10
-                # rotation, rotationNoise = dirOut[0][1], noise[1] * AGV.MAX_ROTATION
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
                 rotation, rotationNoise = dirOut[0][1], rotationN.ornstein_uhlenbeck_level(rotationNoise)
                 if abs(orientation) <= 0.01:
@@ -139,22 +140,17 @@ def train(sess, env, args, actor, critic):
                 noise = np.array([orientationNoise, rotationNoise])
                 total_noise0.append(orientationNoise)
                 total_noise1.append(rotationNoise)
-                #
-                # orientation += orientationNoise
-                # rotation += rotationNoise
-                #
-                # a = np.array([orientation, rotation])
                 a = dirOut + noise
             else:
                 if count == 0:
-                    env.setCarMess(500 + random.randint(100, 500))
-                    # env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
-                    env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
-                    print "===================="+str(env.car.mess)+"================="
-                    count = 10
+                    saver.save(sess,'model_'+str(i))
+                    count = -1
+                #     env.setCarMess(500 + random.randint(100, 500))
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
+                #     print "===================="+str(env.car.mess)+"================="
+                #     count = 10
                 a = dirOut
-
-            # total_noise += noise
 
             s2, r, terminal, info = env.step(a)
 
@@ -181,24 +177,8 @@ def train(sess, env, args, actor, critic):
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
 
                 # Update the critic given the targets
-                # merged = tf.merge_all_summaries()
-
-                # loss = sess.run([critic.loss], feed_dict={
-                #     critic.predicted_q_value: np.reshape(y_i, (int(args['minibatch_size']), 1)),
-                #     critic.inputs: s_batch,
-                #     critic.action: a_batch
-                # })
-                #
-                # predicted_q_value = sess.run([critic.optimize], feed_dict={
-                #     critic.loss: loss
-                # })
-
-                # predicted_q_value, _ = critic.train(
-                #     # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-                #     s_batch, a_batch, y_label)
                 if not isConvergence:
                     predicted_q_value, _ = critic.train(
-                        # s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
                         s_batch, a_batch, y_label)
                 else:
                     predicted_q_value = critic.predict(s_batch, a_batch)
@@ -209,22 +189,26 @@ def train(sess, env, args, actor, critic):
                     critic.predicted_q_value: y_label
                 })
 
-
-                diff = y_label - predicted_q_value
-                diff = abs(diff)
-                ave_diff = sum(diff)[0] / float(len(diff))
-
                 ep_ave_max_q += np.amax(predicted_q_value)
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                # a_outs = actor.predict(s_batch)
-                # grads = critic.action_gradients(s_batch, a_outs)
-                # actor.train(s_batch, grads[0])
+                aGrads1, aGrads2 = None,None
                 if not isConvergence:
                     a_outs = actor.predict(s_batch)
                     grads = critic.action_gradients(s_batch, a_outs)
                     actor.train(s_batch, grads[0])
+
+                    # grads = critic.action_gradients(sb, ab) ##
+                    # actor.train(sb, grads[0]) ##
+
+                    aGrads1 = map(lambda x:x[0],grads[0])
+                    aGrads2 = map(lambda x:x[1],grads[0])
+
+                if np.amax(aGrads1) is not None:
+                    total_gradient += np.amax(aGrads1)
+                if np.amax(aGrads2) is not None:
+                    total_gradient2 += np.amax(aGrads2)
 
                 # Update target networks
                 actor.update_target_network()
@@ -241,7 +225,7 @@ def train(sess, env, args, actor, critic):
                 wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
                 action_r, action_s = info.get("action")[0], info.get("action")[1]
                 speed = info.get("speed")
-                speed_reward, error_reward = info.get("reward")[0], info.get("reward")[1]
+                error_record = info.get("error")
 
                 avgError = info.get("avgError")
 
@@ -252,15 +236,18 @@ def train(sess, env, args, actor, critic):
                         summary_vars[0]: ep_reward / float(j),
                         summary_vars[1]: ep_ave_max_q / float(j),
                         summary_vars[2]: total_loss / float(j),
-                        summary_vars[3]: avgError
+                        summary_vars[3]: avgError,
+                        summary_vars[4]: total_gradient / float(j),
+                        summary_vars[5]: total_gradient2 / float(j)
                     })
 
                     writer.add_summary(summary_str, i)
 
                     writer.flush()
 
-                    # if (i % 20 == 0 and 500 <= i):
-                    if (i % 200 == 0 and not isConvergence) or (isConvergence and i % 10):
+                    # if (not isConvergence and i > 450 and (i % 30 == 0)) or (isConvergence and (i % 20 == 0)):
+                    if (not isConvergence and (i % 100 == 0)) or (isConvergence and (i % 10 == 0)):
+
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(moveStorex,moveStorey):
@@ -276,31 +263,78 @@ def train(sess, env, args, actor, critic):
                             for x,y in zip(action_r,action_s):
                                 csv_writer.writerow([x,y])
 
-                        with open('reward'+str(i)+'.csv','wb') as f:
+                        with open('error'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
-                            for x,y in zip(speed_reward,error_reward):
-                                csv_writer.writerow([x,y])
+                            for x in error_record:
+                                csv_writer.writerow([x])
 
                 if j > 0:
-                    ave_error = info.get("avgError")
-                    # print max(total_noise0), max(total_noise1)
-                    # if i < exp_time:
-                    # if last_loss > 1.0E5 or ave_err > 0.5 or last_times < env.max_time:
                     if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
-                    # print(
-                    # '| Reward: {:.4f} | Episode: {:d} | times:{:d} | Qmax: {:.4f} | ave_error: {:.4f} | ave_diff: {:.4f} | loss: {:.4f}'.format(
-                    #     int(ep_reward) / float(j), i, totalTime, (ep_ave_max_q / float(j)), ave_error, float(ave_diff), (total_loss / float(j))))
                     print(
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
-                           int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), ave_error, sum(speed)/float(j), max(speed)))
+                           int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
                 ave_err = ave_error
                 last_times = j
                 break
     writer.close()
 
+def predictWork(sess, model, env, args, actor):
+
+    saver = tf.train.Saver()
+    sess.run(tf.global_variables_initializer())
+    saver.restore(sess, model)
+    times = 2000
+
+    for i in range(1):
+        s, info, len = env.reset(), None, 0
+        env.setMaxTime(times-10)
+        for j in range(1, times):
+            if args['render_env']:
+                env.render()
+
+            a = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            s, r, terminal, info = env.step(a)
+
+            if terminal:
+                len = j
+                break
+
+        moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
+        wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+        action_r, action_s = info.get("action")[0], info.get("action")[1]
+        speed = info.get("speed")
+        error_record = info.get("error")
+
+
+        with open('movePath'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x,y in zip(moveStorex,moveStorey):
+                csv_writer.writerow([x,y])
+
+        with open('wheelPath'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x,y in zip(wheelx,wheely):
+                csv_writer.writerow([x,y])
+
+        with open('action'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x,y in zip(action_r,action_s):
+                csv_writer.writerow([x,y])
+
+        with open('error'+str(i)+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x in error_record:
+                csv_writer.writerow([x])
+
+        if len > 0:
+            ave_error = info.get("avgError")
+            print(
+                # 'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
+                'Episode: {:d} | times:{:d} | ave_error: {:.4f} | ave_speed: {:.4f}'.format(
+                    i, len,  ave_error, sum(speed)/float(j)))
 
 def main(args):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -310,7 +344,15 @@ def main(args):
 
         # env = gym.make(args['env'])
         # env = PathFollowing()
-        env = PathFollowingV3()
+        if args['envno'] == '2':
+            env = PathFollowingV2()
+        # elif args['envno'] == '1':
+        #     env = PathFollowingV1()
+        elif args['envno'] == '3':
+            env = PathFollowingV3()
+        else:
+            env = PathFollowingV3()
+
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -337,7 +379,10 @@ def main(args):
             else:
                 env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
-        train(sess, env, args, actor, critic)
+        if args['model'] == '':
+            train(sess, env, args, actor, critic)
+        else:
+            predictWork(sess, 'model_'+str(args['model']), env, args, actor)
 
         if args['use_gym_monitor']:
             env.close()
@@ -352,7 +397,7 @@ if __name__ == '__main__':
     parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
-    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
+    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E4)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
@@ -365,16 +410,18 @@ if __name__ == '__main__':
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
     parser.add_argument('--gpu', help='gpu index', default='0')
+    parser.add_argument('--model', help='restore model', default='')
+    parser.add_argument('--envno', help='env NO.', default='3')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
 
     # parser.set_defaults(use_gym_monitor=True)
     parser.set_defaults(use_gym_monitor=False)
-    parser.set_defaults(max_episodes=5.0E3)
-    parser.set_defaults(max_episodes_len=2.0E5)
-    # parser.set_defaults(minibatch_size=64)
-    parser.set_defaults(minibatch_size=128)
+    parser.set_defaults(max_episodes=1.0E4)
+    parser.set_defaults(max_episodes_len=1.0E5)
+    parser.set_defaults(minibatch_size=64)
+    # parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 

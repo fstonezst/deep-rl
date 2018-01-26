@@ -66,8 +66,10 @@ class CriticNetwork(object):
 
         # first layer for state
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activation(net,'relu')
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
@@ -79,7 +81,8 @@ class CriticNetwork(object):
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)
-        out = tflearn.fully_connected(net, 1, weights_init=w_init, bias=w_init)
+        b_init = tflearn.initializations.uniform(minval=-3.0E-4, maxval=3.0E-4)
+        out = tflearn.fully_connected(net, 1, weights_init=w_init, bias=b_init)
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):
