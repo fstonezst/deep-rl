@@ -38,12 +38,15 @@ class PathFollowingV2(gym.Env):
         self.error_record = []
 
         # errorState, betaState, thetaState = [0] * hislength, [float(self.car.q[3])] * hislength, [float(self.car.q[2])] * hislength
-        errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
-        u0State, u1State = [0] * hislength, [0] * hislength
+        # errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
+        # u0State, u1State = [0] * hislength, [0] * hislength
         # self.state = errorState + betaState + thetaState + u0State + u1State
-        self.state = errorState + betaState + u0State + u1State
+        # self.state = errorState + betaState + u0State + u1State
 
-        return np.array(self.state)
+        error0, beta0, u00, u10 = 0, float(self.car.q[3]), 0, 0
+        self.state = [[[error0, beta0, u00, u10]] * hislength]
+
+        return np.array([self.state])
 
     def __init__(self, max_time=1000, errorBound=1, hislength=4):
         self.car = AGV([10,0], np.pi)
@@ -152,9 +155,20 @@ class PathFollowingV2(gym.Env):
             self.u0_buffer.pop(0)
             self.u1_buffer.pop(0)
 
-        # st = self.error_buffer + self.theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
-        st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
-        self.state = np.array(st)
+        # st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        # self.state = np.array(st)
+
+        self.state = []
+        for i in range(1, hislen+1):
+            s = list()
+            s.append(self.error_bound[-i])
+            s.append(self.beta_buffer[-i])
+            s.append(self.u0_buffer[-i])
+            s.append(self.u1_buffer[-i])
+            self.state.append(s)
+
+        self.state = np.array([self.state])
+
 
         # diff1, diff2 = actionDiff[0], actionDiff[1]
 

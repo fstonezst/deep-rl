@@ -376,7 +376,7 @@ def main(args):
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = len(env.reset()) #.shape[1] #8  # env.observation_space.shape[0]
+        state_dim = np.shape(env.reset()) #.shape[1] #8  # env.observation_space.shape[0]
         # state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
@@ -414,8 +414,6 @@ if __name__ == '__main__':
     # agent parameters
     parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
     parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
-    # parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-5)
-    # parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-4)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E4)
