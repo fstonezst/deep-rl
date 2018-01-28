@@ -124,7 +124,7 @@ def train(sess, env, args, actor, critic):
                 env.render()
 
             # Added exploration noise
-            dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            dirOut = actor.predict(np.reshape(s, (1, actor.s_dim[0], actor.s_dim[1], actor.s_dim[2])))
 
             if not isConvergence:
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -154,8 +154,8 @@ def train(sess, env, args, actor, critic):
 
             s2, r, terminal, info = env.step(a)
 
-            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
-                              terminal, np.reshape(s2, (actor.s_dim,)))
+            replay_buffer.add(np.reshape(s, (actor.s_dim[0], actor.s_dim[1], actor.s_dim[2])), np.reshape(a, (actor.a_dim,)), r,
+                              terminal, np.reshape(s2, (actor.s_dim[0], actor.s_dim[1], actor.s_dim[2])))
             lastReward = r
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
@@ -316,7 +316,7 @@ def predictWork(sess, model, env, args, actor):
             if args['render_env']:
                 env.render()
 
-            a = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            a = actor.predict(np.reshape(s, (1, actor.s_dim[0], actor.s_dim[1], actor.s_dim[2])))
             s, r, terminal, info = env.step(a)
 
             if terminal:

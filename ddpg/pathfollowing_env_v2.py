@@ -46,7 +46,7 @@ class PathFollowingV2(gym.Env):
         error0, beta0, u00, u10 = 0, float(self.car.q[3]), 0, 0
         self.state = [[[error0, beta0, u00, u10]] * hislength]
 
-        return np.array([self.state])
+        return np.array(self.state)
 
     def __init__(self, max_time=1000, errorBound=1, hislength=4):
         self.car = AGV([10,0], np.pi)
@@ -161,7 +161,7 @@ class PathFollowingV2(gym.Env):
         self.state = []
         for i in range(1, hislen+1):
             s = list()
-            s.append(self.error_bound[-i])
+            s.append(self.error_buffer[-i])
             s.append(self.beta_buffer[-i])
             s.append(self.u0_buffer[-i])
             s.append(self.u1_buffer[-i])

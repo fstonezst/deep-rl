@@ -56,23 +56,23 @@ class ActorNetwork(object):
         times = 1
         N_HIDDEN_1, N_HIDDEN_2, N_HIDDEN_3 = 400 * times, 300 * times, 100 * times
 
-        inputs = tflearn.input_data(shape=[None, self.s_dim[0],self.s_dim[1],self.s_dim[2]])
+        inputs = tflearn.input_data(shape=[None, self.s_dim[0], self.s_dim[1], self.s_dim[2]])
         inputLayer = tflearn.layers.normalization.batch_normalization(inputs)
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim[2]), maxval=1/np.sqrt(self.s_dim[2]))
         net = tflearn.conv_2d(inputLayer, N_HIDDEN_1, 1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activation(net,'relu')
+        net = tflearn.activation(net, 'relu')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1), maxval=1/np.sqrt(N_HIDDEN_1))
         net = tflearn.conv_2d(net, N_HIDDEN_2, 1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activation(net,'relu')
+        net = tflearn.activation(net, 'relu')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_2*self.s_dim[1]), maxval=-1/np.sqrt(N_HIDDEN_2*self.s_dim[1]))
         net = tflearn.fully_connected(net, N_HIDDEN_3, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activation(net,'relu')
+        net = tflearn.activation(net, 'relu')
 
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-3.0E-3, maxval=3.0E-3)

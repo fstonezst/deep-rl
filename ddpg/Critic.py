@@ -78,7 +78,7 @@ class CriticNetwork(object):
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
         # t1, t2 = tf.reshape(tflearn.activations.linear(net), [None, self.s_dim[1] * N_HIDDEN_2]), tflearn.activations.linear(action)
-        t1, t2 = tf.reshape(net, tf.TensorShape([None, self.s_dim[1] * N_HIDDEN_2])), tflearn.activations.linear(action)
+        t1, t2 = tf.reshape(net, [-1, self.s_dim[1] * N_HIDDEN_2]), tflearn.activations.linear(action)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim[1] * N_HIDDEN_2 + self.a_dim), maxval=1/np.sqrt(self.s_dim[1] * N_HIDDEN_2 + self.a_dim))
