@@ -106,7 +106,8 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
            if lastReward > -0.16 and i > (curr_model_no + 20):
@@ -302,7 +303,7 @@ def predictWork(sess, model, env, args, actor):
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
-    times = 200
+    times = 600
 
     for i in range(1):
         s, info, len = env.reset(), None, 0
