@@ -22,9 +22,9 @@ def speed_fun(speed):
     # return 0
 
 
-step, start, end = 0.005, 0.0, 0.05  #PathFollowingV2.error_bound
+step, start, end = 0.1, 0.0, 1#PathFollowingV2.error_bound
 X = np.arange(start, end, step)
-step, start, end = 0.3, 1, 4         #AGV.MAX_SPEED
+step, start, end = 0.5, 1, 6         #AGV.MAX_SPEED
 Y = np.arange(start, end, step)
 X, Y = np.meshgrid(X, Y)
 
