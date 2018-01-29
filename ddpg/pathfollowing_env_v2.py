@@ -37,12 +37,6 @@ class PathFollowingV2(gym.Env):
         self.speed_record = []
         self.error_record = []
 
-        # errorState, betaState, thetaState = [0] * hislength, [float(self.car.q[3])] * hislength, [float(self.car.q[2])] * hislength
-        # errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
-        # u0State, u1State = [0] * hislength, [0] * hislength
-        # self.state = errorState + betaState + thetaState + u0State + u1State
-        # self.state = errorState + betaState + u0State + u1State
-
         error0, beta0, u00, u10 = 0, float(self.car.q[3]), 0, 0
         self.state = [[[error0, beta0, u00, u10]] * hislength]
 
@@ -188,7 +182,8 @@ class PathFollowingV2(gym.Env):
         if done:
             return np.array(self.state), -reward, done, {"result": [], \
                                                          # "avgError": self.totalError / float(self.time),
-                                                         "avgError": self.maxError,
+                                                         # "avgError": self.maxError,
+                                                         "avgError": abs(error),
                                                          "moveStore": [self.center_x_record, self.center_y_record],
                                                          "action": [self.action_r_record, self.action_s_record],
                                                          "wheel": [self.wheel_x_record, self.wheel_y_record],
