@@ -106,13 +106,13 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        # if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
-           if lastReward > -0.16 and i > (curr_model_no + 20):
-               curr_model_no = i
-               saver.save(sess, 'model_'+str(i))
+           # if lastReward > -0.16 and i > (curr_model_no + 20):
+           #     curr_model_no = i
+               # saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
             if count == 0:
@@ -438,8 +438,8 @@ if __name__ == '__main__':
     parser.set_defaults(use_gym_monitor=False)
     parser.set_defaults(max_episodes=1.0E4)
     parser.set_defaults(max_episodes_len=1.0E5)
-    parser.set_defaults(minibatch_size=64)
-    # parser.set_defaults(minibatch_size=128)
+    # parser.set_defaults(minibatch_size=64)
+    parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
     # parser.set_defaults(use_gym_monitor=False)
 
