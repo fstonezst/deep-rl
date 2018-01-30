@@ -1,6 +1,5 @@
 # -- coding: utf-8 --
 import gym
-import math
 import numpy as np
 from gym.utils import seeding
 from gym import spaces
@@ -14,60 +13,56 @@ class PathFollowingV1(gym.Env):
 
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 1
-    history_length = 6
 
     def _reset(self):
-        self.car = AGV([10.5, 0], np.pi)
+        wheelx, wheely = 0, 10.5
+        self.car = AGV([wheelx, wheely], np.pi * 0.5)
         self.totalError = 0
+        self.maxError = 0
         self.time = 0
-        self.error_record_buffer = [0] * PathFollowingV1.history_length
-        self.u0_record_buffer = [0] * PathFollowingV1.history_length
-        self.u1_record_buffer = [0] * PathFollowingV1.history_length
 
-        self.lastAction = 0
+        hislength = self.historyLength
+        self.error_buffer = [0] * hislength
+        self.beta_buffer = [0] * hislength
+        self.u0_buffer = [0] * hislength
+        self.u1_buffer = [0] * hislength
 
-        self.moveStorex, self.moveStorey = [], []
-        self.wheelx, self.wheely = [], []
-        self.action_r_store, self.action_s_store = [], []
-        self.speed = []
+        self.center_x_record, self.center_y_record = [], []
+        self.wheel_x_record, self.wheel_y_record = [], []
+        self.action_r_record, self.action_s_record = [], []
+        self.speed_record = []
         self.error_record = []
 
-        errorState, u0State, u1State = [0] * 6, [0] * 6, [0] * 6
-        self.state = errorState + u0State + u1State
-        theta, B = float(self.car.q[2]), float(self.car.q[3])
-        self.state.extend([theta, B])
+        errorState, betaState = [wheely-self.r] * hislength, [float(self.car.q[3])] * hislength
+        u0State, u1State = [0] * hislength, [0] * hislength
+        self.state = errorState + betaState + u0State + u1State
 
         return np.array(self.state)
 
-    def __init__(self):
-        self.car = AGV()
+    def __init__(self, max_time=500, errorBound=1.5, hislength=4):
+        wheelx, wheely = 0, 10.5
+        self.car = AGV([wheelx, wheely], np.pi * 0.5)
         self.totalError = 0
+        self.maxError = 0
         self.time = 0
+        self.r = 10
 
-        self.error_record_buffer = [0] * PathFollowingV1.history_length
-        self.u0_record_buffer = [0] * PathFollowingV1.history_length
-        self.u1_record_buffer = [0] * PathFollowingV1.history_length
+        self.historyLength = hislength
+        self.error_buffer = [wheely - self.r] * hislength
+        self.beta_buffer = [0.5 * np.pi] * hislength
+        self.u0_buffer = [0] * hislength
+        self.u1_buffer = [0] * hislength
 
-        self.lastAction = np.array([0, 0])
-
-        # self.pathStore = []
-        self.moveStorex, self.moveStorey = [], []
-        self.wheelx, self.wheely = [], []
-        self.action_r_store, self.action_s_store = [], []
-        self.speed = []
+        self.center_x_record, self.center_y_record = [], []
+        self.wheel_x_record, self.wheel_y_record = [], []
+        self.action_r_record, self.action_s_record = [], []
+        self.speed_record = []
         self.error_record, self.speed_reward_record = [], []
 
-        self.buffer_size = 10
-        # self.min_position = -1
-        # self.max_position = 1
-
-        self.max_time = 300
+        self.max_time = max_time
+        self.error_bound = errorBound
         self.viewer = None
 
-        # self.path = [math.sin(x*(math.pi/180.0)) for x in range(0, 512)]
-        self.r = 10
-        # self.movepath = [0 for _ in range(0, 180)]
 
         # action bounded
         min_orientation, max_orientation = -AGV.MAX_ORIENTATION, AGV.MAX_ORIENTATION
@@ -76,15 +71,10 @@ class PathFollowingV1(gym.Env):
         self.action_max = np.array([max_orientation, max_rotation])
 
         # observation bounded
-        # x_max, x_min = 10, -10
-        # y_max, y_min = 10, -10
-        # xita_max, xita_min = np.pi, -np.pi
         B_max, B_min = PathFollowingV1.max_angle, PathFollowingV1.min_angle
-        Error_max, Error_min = PathFollowingV1.error_bound, -PathFollowingV1.error_bound
+        Error_max, Error_min = self.error_bound, -self.error_bound
         speed_min, speed_max = PathFollowingV1.min_speed, PathFollowingV1.max_speed
 
-        # self.observation_min = np.array([x_min, y_min, xita_min, B_min, Error_min, speed_min])
-        # self.observation_max = np.array([x_max, y_max, xita_max, B_max, Error_max, speed_max])
         self.observation_min = np.array([B_min, Error_min, speed_min])
         self.observation_max = np.array([B_max, Error_max, speed_max])
 
@@ -95,11 +85,11 @@ class PathFollowingV1(gym.Env):
         self._seed()
         self._reset()
 
-    def setMaxTime(self,maxTime):
-        self.max_time=maxTime
-
     def setCarMess(self, m):
         self.car.setMess(m)
+
+    def setMaxTime(self, maxTime):
+        self.max_time = maxTime
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -108,70 +98,62 @@ class PathFollowingV1(gym.Env):
     def _step(self, action):
         self.car.controlInput(np.matrix(action))
         orientation, rotation = float(action[0][0]), float(action[0][1])
-        self.action_r_store.append(orientation)
-        self.action_s_store.append(rotation)
-
-        actionDiff = action - self.lastAction
-        actionDiff = actionDiff[0]
-        self.lastAction = action
+        self.action_r_record.append(orientation)
+        self.action_s_record.append(rotation)
 
         self.time += 1
 
+
         curcarx, curcary = float(self.car.q[0]), float(self.car.q[1])
         wheelx, wheely = float(self.car.wheelPos[0]), float(self.car.wheelPos[1])
-        self.moveStorex.append(curcarx)
-        self.moveStorey.append(curcary)
-        self.wheelx.append(wheelx)
-        self.wheely.append(wheely)
+        speed, orientationSpeed = float(self.car.uk[0]), float(self.car.uk[1])
+        theta, beta = float(self.car.q[2]), float(self.car.q[3])
 
-        self.u0_record_buffer.append(float(self.car.uk[0]))
-        self.u1_record_buffer.append(float(self.car.uk[1]))
+        self.center_x_record.append(curcarx)
+        self.center_y_record.append(curcary)
+        self.wheel_x_record.append(wheelx)
+        self.wheel_y_record.append(wheely)
+        self.speed_record.append(speed)
 
-        # error = (np.square(curcarx) + np.square(curcary)) - np.square(self.r)
-        error = wheelx - self.r
+        self.u0_buffer.append(speed)
+        self.u1_buffer.append(orientationSpeed)
+        self.beta_buffer.append(beta)
+
+        error = wheely - self.r
+
         self.error_record.append(error)
-
         self.totalError += abs(error)
-        self.error_record_buffer.append(error)
-        # self.error_sum += error
-        # self.error_abs_sum += abs(error)
+        if abs(error) > self.maxError:
+            self.maxError = abs(error)
 
-        if len(self.error_record_buffer) > self.buffer_size:
-            self.error_record_buffer.pop(0)
-            self.u0_record_buffer.pop(0)
-            self.u1_record_buffer.pop(0)
+        self.error_buffer.append(error)
+        hislen = self.historyLength
+        if len(self.error_buffer) > hislen:
+            self.error_buffer.pop(0)
+            self.beta_buffer.pop(0)
+            self.u0_buffer.pop(0)
+            self.u1_buffer.pop(0)
 
-        error_state = self.error_record_buffer[-PathFollowingV1.history_length:]
-        u0_state = self.u0_record_buffer[-PathFollowingV1.history_length:]
-        u1_state = self.u1_record_buffer[-PathFollowingV1.history_length:]
-        st = error_state + u0_state + u1_state
-        theta, B, speed = float(self.car.q[2]), float(self.car.q[3]), float(self.car.uk[0])  # float(self.car.q[4])
-        self.speed.append(speed)
-        st.extend([theta, B])
+        st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
         self.state = np.array(st)
 
-        diff1, diff2 = actionDiff[0], actionDiff[1]
-
         error_reward = np.square(error) * 8.0E-1
-        speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
+        speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)
 
         reward = speed_reward + error_reward
 
-
-        # if abs(diff1) > 0.01:
-        #     reward += (1-ratio) * abs(actionDiff[0])
-        # if abs(diff2) > 100:
-        #     reward += (1-ratio) * abs(actionDiff[1])
-
-        done = True if self.time > self.max_time or abs(error) > PathFollowingV1.error_bound else False
+        done = True if self.time > self.max_time or abs(error) > self.error_bound else False
 
         if done:
             return np.array(self.state), -reward, done, {"result": [], \
-                                                         "avgError": self.totalError / float(self.time),
-                                                         "moveStore": [self.moveStorex, self.moveStorey],
-                                                         "action": [self.action_r_store, self.action_s_store],
-                                                         "wheel": [self.wheelx, self.wheely],
-                                                         "speed": self.speed,
+                                                         # "avgError": self.totalError / float(self.time),
+                                                         "avgError": self.maxError,
+                                                         "moveStore": [self.center_x_record, self.center_y_record],
+                                                         "action": [self.action_r_record, self.action_s_record],
+                                                         "wheel": [self.wheel_x_record, self.wheel_y_record],
+                                                         "speed": self.speed_record,
                                                          "error": self.error_record}
 
-        return np.array(self.state), -reward, done, {"result": []}
+        return np.array(self.state), -reward, done, {"result": [],
+                                                     "Error": self.maxError
+                                                     }

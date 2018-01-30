@@ -75,17 +75,10 @@ def train(sess, env, args, actor, critic):
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
     totalTime = 0
-    ave_error = 0
-    exp_time = int(args['max_episodes'])-10
-    oriNoiseRate, rotNoiseRate = 1, 0.8
-
-
-    last_loss, last_times = 4.0E8, 0
-    lastReward = -1
-    ave_err = 4
     count = 10
-    print "===================="+str(env.car.mess)+"================="
-
+    curr_model_no = 0
+    oriNoiseRate, rotNoiseRate = 1, 0.8
+    last_loss, last_times, lastReward, last_error = 4.0E8, 0, -1, 4
 
     for i in range(int(args['max_episodes'])):
         if totalTime > int(args['max_episodes_len']):
@@ -113,11 +106,23 @@ def train(sess, env, args, actor, critic):
         # for j in range(int(args['max_episode_len'])):
 
         isConvergence = True
-        if last_loss > 4.0E-3 or ave_err > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
+           if lastReward > -0.16 and i > (curr_model_no + 20):
+               curr_model_no = i
+               saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
+            if count == 0:
+                #     env.setCarMess(500 + random.randint(100, 500))
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
+                #     print "===================="+str(env.car.mess)+"================="
+                #     count = 10
+                saver.save(sess,'model_'+str(i))
+                count = -1
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -142,14 +147,6 @@ def train(sess, env, args, actor, critic):
                 total_noise1.append(rotationNoise)
                 a = dirOut + noise
             else:
-                if count == 0:
-                    saver.save(sess,'model_'+str(i))
-                    count = -1
-                #     env.setCarMess(500 + random.randint(100, 500))
-                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
-                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
-                #     print "===================="+str(env.car.mess)+"================="
-                #     count = 10
                 a = dirOut
 
             s2, r, terminal, info = env.step(a)
@@ -242,30 +239,29 @@ def train(sess, env, args, actor, critic):
 
                 totalTime += j
 
-                moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
-                wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
                 action_r, action_s = info.get("action")[0], info.get("action")[1]
                 speed = info.get("speed")
-                error_record = info.get("error")
-
                 avgError = info.get("avgError")
 
-                debug = True
+                summary_str = sess.run(summary_ops, feed_dict={
+                    # summary_vars[0]: ep_reward ,
+                    summary_vars[0]: ep_reward / float(j),
+                    summary_vars[1]: ep_ave_max_q / float(j),
+                    summary_vars[2]: total_loss / float(j),
+                    summary_vars[3]: avgError,
+                    summary_vars[4]: total_gradient / float(j),
+                    summary_vars[5]: total_gradient2 / float(j)
+                })
+
+                writer.add_summary(summary_str, i)
+
+                writer.flush()
+
+                debug = True if str(args['debug']) == "True" else False
                 if debug:
-                    summary_str = sess.run(summary_ops, feed_dict={
-                        # summary_vars[0]: ep_reward ,
-                        summary_vars[0]: ep_reward / float(j),
-                        summary_vars[1]: ep_ave_max_q / float(j),
-                        summary_vars[2]: total_loss / float(j),
-                        summary_vars[3]: avgError,
-                        summary_vars[4]: total_gradient / float(j),
-                        summary_vars[5]: total_gradient2 / float(j)
-                    })
-
-                    writer.add_summary(summary_str, i)
-
-                    writer.flush()
-
+                    moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
+                    wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+                    error_record = info.get("error")
                     # if (not isConvergence and i > 450 and (i % 30 == 0)) or (isConvergence and (i % 20 == 0)):
                     if (not isConvergence and (i % 100 == 0)) or (isConvergence and (i % 10 == 0)):
 
@@ -297,7 +293,7 @@ def train(sess, env, args, actor, critic):
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
-                ave_err = ave_error
+                last_error = avgError
                 last_times = j
                 break
     writer.close()
@@ -433,6 +429,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', help='gpu index', default='0')
     parser.add_argument('--model', help='restore model', default='')
     parser.add_argument('--envno', help='env NO.', default='2')
+    parser.add_argument('--debug', help='store path', default='False')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
