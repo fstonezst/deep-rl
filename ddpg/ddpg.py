@@ -79,6 +79,7 @@ def train(sess, env, args, actor, critic):
     curr_model_no = 0
     oriNoiseRate, rotNoiseRate = 1, 0.8
     last_loss, last_times, lastReward, last_error = 4.0E8, 0, -1, 4
+    isConvergence = True
 
     for i in range(int(args['max_episodes'])):
         if totalTime > int(args['max_episodes_len']):
@@ -123,6 +124,7 @@ def train(sess, env, args, actor, critic):
                 #     count = 10
                 saver.save(sess,'model_'+str(i))
                 count = -1
+                break
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -296,8 +298,8 @@ def train(sess, env, args, actor, critic):
                 last_error = avgError
                 last_times = j
                 break
-
-    saver.save(sess, 'model_final')
+    if not isConvergence:
+        saver.save(sess, 'model_final')
     writer.close()
 
 def predictWork(sess, model, env, args, actor):
@@ -410,8 +412,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
-    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
+    parser.add_argument('--actor-lr', help='actor network learning rate', default=2.0E-4)
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=2.0E-3)
     # parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-5)
     # parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-4)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
