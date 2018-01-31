@@ -45,7 +45,7 @@ class PathFollowingV2(gym.Env):
 
         return np.array(self.state)
 
-    def __init__(self, max_time=1000, errorBound=1, hislength=4):
+    def __init__(self, max_time=1000, errorBound=1, hislength=2):
         self.car = AGV([10,0], np.pi)
         self.totalError = 0
         self.maxError = 0
