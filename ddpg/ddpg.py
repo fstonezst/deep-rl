@@ -79,6 +79,7 @@ def train(sess, env, args, actor, critic):
     curr_model_no = 0
     oriNoiseRate, rotNoiseRate = 1, 0.8
     last_loss, last_times, lastReward, last_error = 4.0E8, 0, -1, 4
+    isConvergence = True
 
     for i in range(int(args['max_episodes'])):
         if totalTime > int(args['max_episodes_len']):
@@ -110,7 +111,7 @@ def train(sess, env, args, actor, critic):
         if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
-           if lastReward > -0.16 and i > (curr_model_no + 20):
+           if lastReward > -0.16 and i > (curr_model_no + 30):
                curr_model_no = i
                saver.save(sess, 'model_'+str(i))
         else:
@@ -123,6 +124,7 @@ def train(sess, env, args, actor, critic):
                 #     count = 10
                 saver.save(sess,'model_'+str(i))
                 count = -1
+                break
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -296,6 +298,8 @@ def train(sess, env, args, actor, critic):
                 last_error = avgError
                 last_times = j
                 break
+    if not isConvergence:
+        saver.save(sess, 'model_final')
     writer.close()
 
 def predictWork(sess, model, env, args, actor):
