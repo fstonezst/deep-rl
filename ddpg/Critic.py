@@ -53,7 +53,7 @@ class CriticNetwork(object):
         self.action_grads = tf.gradients(self.out, self.action)
 
     def create_critic_network(self):
-        times = 2
+        times = 1
         N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
         N_HIDDEN_3 = 200 * times
 
