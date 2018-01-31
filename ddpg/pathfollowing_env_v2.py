@@ -16,15 +16,16 @@ class PathFollowingV2(gym.Env):
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
 
     def _reset(self):
-        self.car = AGV([10,0], np.pi)
+        self.car = AGV([10.5, 0], np.pi)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
 
         hislength = self.historyLength
         self.error_buffer = [0] * hislength
-        self.beta_buffer = [0] * hislength
-        self.theta_buffer = [0] * hislength
+        self.beta_buffer = [float(self.car.q[3])] * hislength
+        self.sin_theta_buffer = [np.sin(self.car.q[2])] * hislength
+        self.cos_theta_buffer = [np.cos(self.car.q[2])] * hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
 
@@ -37,24 +38,26 @@ class PathFollowingV2(gym.Env):
         self.speed_record = []
         self.error_record = []
 
-        errorState, betaState, thetaState = [0] * hislength, [float(self.car.q[3])] * hislength, [float(self.car.q[2])] * hislength
+        errorState, betaState, sinThetaState, cosThetaState =\
+            [0] * hislength, [float(self.car.q[3])] * hislength, [np.sin(self.car.q[2])] * hislength, [np.cos(self.car.q[2])] * hislength
         # errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
         u0State, u1State = [0] * hislength, [0] * hislength
-        self.state = errorState + betaState + thetaState + u0State + u1State
+        self.state = errorState + betaState + sinThetaState + cosThetaState + u0State + u1State
         # self.state = errorState + betaState + u0State + u1State
 
         return np.array(self.state)
 
     def __init__(self, max_time=1000, errorBound=1, hislength=4):
-        self.car = AGV([10,0], np.pi)
+        self.car = AGV([10.5,0], np.pi)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
 
         self.historyLength = hislength
         self.error_buffer = [0] * hislength
-        self.beta_buffer = [0] * hislength
-        self.theta_buffer = [0] * hislength
+        self.beta_buffer = [float(self.car.q[3])] * hislength
+        self.sin_theta_buffer = [np.sin(self.car.q[2])] * hislength
+        self.cos_theta_buffer = [np.cos(self.car.q[2])]* hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
 
@@ -132,7 +135,8 @@ class PathFollowingV2(gym.Env):
 
         self.u0_buffer.append(speed)
         self.u1_buffer.append(orientationSpeed)
-        self.theta_buffer.append(theta)
+        self.sin_theta_buffer.append(np.sin(theta))
+        self.cos_theta_buffer.append(np.cos(theta))
         self.beta_buffer.append(beta)
 
 
@@ -147,12 +151,13 @@ class PathFollowingV2(gym.Env):
         hislen = self.historyLength
         if len(self.error_buffer) > hislen:
             self.error_buffer.pop(0)
-            self.theta_buffer.pop(0)
+            self.sin_theta_buffer.pop(0)
+            self.cos_theta_buffer.pop(0)
             self.beta_buffer.pop(0)
             self.u0_buffer.pop(0)
             self.u1_buffer.pop(0)
 
-        st = self.error_buffer + self.theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        st = self.error_buffer + self.sin_theta_buffer + self.cos_theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
         # st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
         self.state = np.array(st)
 

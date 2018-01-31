@@ -53,8 +53,9 @@ class CriticNetwork(object):
         self.action_grads = tf.gradients(self.out, self.action)
 
     def create_critic_network(self):
-        times = 1
+        times = 2
         N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
+        N_HIDDEN_3 = 200 * times
 
         # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim])
@@ -69,12 +70,17 @@ class CriticNetwork(object):
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
+        w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1), maxval=1/np.sqrt(N_HIDDEN_1))
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activation(net,'relu')
+
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
         t1, t2 = tflearn.activations.linear(net), tflearn.activations.linear(action)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
-        w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1+self.a_dim), maxval=1/np.sqrt(N_HIDDEN_1+self.a_dim))
-        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init)
+        w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_2+self.a_dim), maxval=1/np.sqrt(N_HIDDEN_2+self.a_dim))
+        net = tflearn.fully_connected(net, N_HIDDEN_3, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init)
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]

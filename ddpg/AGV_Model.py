@@ -239,21 +239,23 @@ class AGV:
 # car = AGV()
 # pathx, pathy = [], []
 # centerx, centery = [], []
+# theta = []
 # B = []
-# for i in range(100):
+# for i in range(50):
 #     pathx.append(car.q[0])
 #     pathy.append(car.q[1])
 #     centerx.append(car.wheelPos[0])
 #     centery.append(car.wheelPos[1])
+#     theta.append(np.sin(car.q[2]))
+#     # B.append(float(car.q[3]))
+#     B.append(np.cos(car.q[2]))
 #     # car.control(np.matrix([[1], [2]]))
 #     # car.controlInput(np.matrix([5, 2000]))
 #     if i < 50:
 #         car.controlInput(np.matrix([-0.05, 50]))
 #     else:
 #         car.controlInput(np.matrix([-0.05, 70]))
-#     B.append(float(car.q[2]))
 #     print car.uk[0],car.q[3]
-#         # car.controlInput(np.matrix([0,0]))
 #
 # fig = plt.figure()
 # ax = fig.add_subplot(2,1,1)
@@ -262,6 +264,7 @@ class AGV:
 # ax.plot(pathx,pathy,'r-o')
 # ax.plot(centerx,centery,'b-*')
 # ax1.plot(B,'b-*')
+# ax1.plot(theta,'r-o')
 #
 # plt.show()
 

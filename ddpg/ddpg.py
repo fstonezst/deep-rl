@@ -408,6 +408,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
+    # parser.add_argument('--actor-lr', help='actor network learning rate', default=2.0E-4)
+    # parser.add_argument('--critic-lr', help='critic network learning rate', default=2.0E-3)
     parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
     parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
     # parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-5)
