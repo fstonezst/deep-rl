@@ -15,14 +15,14 @@ class PathFollowingV1(gym.Env):
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
 
     def _reset(self):
-        wheelx, wheely = 0, 10.5
+        wheelx, wheely = 0, 10
         self.car = AGV([wheelx, wheely], np.pi * 0.5)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
 
         hislength = self.historyLength
-        self.error_buffer = [0] * hislength
+        self.error_buffer = [wheely-self.r] * hislength
         self.beta_buffer = [0] * hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
@@ -40,7 +40,7 @@ class PathFollowingV1(gym.Env):
         return np.array(self.state)
 
     def __init__(self, max_time=500, errorBound=1.5, hislength=4):
-        wheelx, wheely = 0, 10.5
+        wheelx, wheely = 0, 10
         self.car = AGV([wheelx, wheely], np.pi * 0.5)
         self.totalError = 0
         self.maxError = 0
