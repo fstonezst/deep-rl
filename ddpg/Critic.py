@@ -5,7 +5,6 @@ class CriticNetwork(object):
     """
     Input to the network is the state and action, output is Q(s,a).
     The action must be obtained from the output of the Actor network.
-
     """
 
     def __init__(self, sess, state_dim, action_dim, learning_rate, tau, gamma, num_actor_vars):
@@ -66,12 +65,14 @@ class CriticNetwork(object):
 
         # first layer for state
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1), maxval=1/np.sqrt(N_HIDDEN_1))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_2, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
@@ -80,7 +81,10 @@ class CriticNetwork(object):
         t1, t2 = tflearn.activations.linear(net), tflearn.activations.linear(action)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_2+self.a_dim), maxval=1/np.sqrt(N_HIDDEN_2+self.a_dim))
-        net = tflearn.fully_connected(net, N_HIDDEN_3, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(net, N_HIDDEN_3, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(net, N_HIDDEN_3, weights_init=w_init)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activation(net,'relu')
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]

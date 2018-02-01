@@ -61,17 +61,20 @@ class ActorNetwork(object):
         inputLayer = tflearn.layers.normalization.batch_normalization(inputs)
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1), maxval=1/np.sqrt(N_HIDDEN_1))
-        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(net, N_HIDDEN_2, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_2), maxval=1/np.sqrt(N_HIDDEN_2))
-        net = tflearn.fully_connected(net, N_HIDDEN_3, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(net, N_HIDDEN_3, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(net, N_HIDDEN_3, weights_init=w_init)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
