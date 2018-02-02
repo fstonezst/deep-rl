@@ -104,16 +104,14 @@ def train(sess, env, args, actor, critic):
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
 
-        # for j in range(int(args['max_episode_len'])):
-
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
         if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
            isConvergence = False
            count = 10
-           if lastReward > -0.16 and i > (curr_model_no + 30):
-               curr_model_no = i
-               saver.save(sess, 'model_'+str(i))
+           # if lastReward > -0.16 and i > (curr_model_no + 30):
+           #     curr_model_no = i
+           #     saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
             if count == 0:
@@ -123,7 +121,6 @@ def train(sess, env, args, actor, critic):
                 #     print "===================="+str(env.car.mess)+"================="
                 #     count = 10
                 saver.save(sess,'model_'+str(i))
-                count = -1
                 break
 
         for j in range(1, 4000):
@@ -162,44 +159,24 @@ def train(sess, env, args, actor, critic):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
                     replay_buffer.sample_batch(int(args['minibatch_size']))
 
-                # sb, ab = np.array([np.reshape(s, (actor.s_dim,))]), np.array([np.reshape(a, (actor.a_dim,))])
-                # rb, tb = np.array([r]), np.array([terminal])
-                # s2b = np.array([np.reshape(s2, (actor.s_dim,))])
-
-                # np.append(s_batch,np.reshape(s, (actor.s_dim,)))
-                # np.append(a_batch,np.reshape(a, (actor.a_dim,)))
-                # np.append(r_batch,r)
-                # np.append(t_batch,terminal)
-                # np.append(s2_batch,np.reshape(s2, (actor.s_dim,)))
-
                 # Calculate targets
                 target_q = critic.predict_target(
                     s2_batch, actor.predict_target(s2_batch))
 
-                # target_qvalue = critic.predict_target(
-                #     s2b, actor.predict_target(s2b)) ##
-
                 y_i = []
-                # y = 0 ##
 
                 for k in range(int(args['minibatch_size'])):
-                # for k in range(len(s_batch)):
                     if t_batch[k]:
                         y_i.append(r_batch[k])
-                        # y = r ##
                     else:
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
-                        # y = r + critic.gamma * target_qvalue ##
 
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
-                # y = np.reshape(y, (1, 1)) ##
 
                 # Update the critic given the targets
                 if not isConvergence:
                     predicted_q_value, _ = critic.train(
                         s_batch, a_batch, y_label)
-
-                    # critic.train(sb, ab, y) ##
                 else:
                     predicted_q_value = critic.predict(s_batch, a_batch)
 
@@ -218,9 +195,6 @@ def train(sess, env, args, actor, critic):
                     a_outs = actor.predict(s_batch)
                     grads = critic.action_gradients(s_batch, a_outs)
                     actor.train(s_batch, grads[0])
-
-                    # grads = critic.action_gradients(sb, ab) ##
-                    # actor.train(sb, grads[0]) ##
 
                     aGrads1 = map(lambda x:x[0],grads[0])
                     aGrads2 = map(lambda x:x[1],grads[0])
@@ -412,10 +386,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
     # agent parameters
-    parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
-    # parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-5)
-    # parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-4)
+    # parser.add_argument('--actor-lr', help='actor network learning rate', default=1.0E-4)
+    # parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
+    parser.add_argument('--actor-lr', help='actor network learning rate', default=2.0E-4)
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=2.0E-3)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E4)
@@ -442,10 +416,9 @@ if __name__ == '__main__':
     parser.set_defaults(use_gym_monitor=False)
     parser.set_defaults(max_episodes=1.0E4)
     parser.set_defaults(max_episodes_len=1.0E5)
-    parser.set_defaults(minibatch_size=64)
-    # parser.set_defaults(minibatch_size=128)
+    # parser.set_defaults(minibatch_size=64)
+    parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
-    # parser.set_defaults(use_gym_monitor=False)
 
     args = vars(parser.parse_args())
 
