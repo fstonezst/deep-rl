@@ -10,34 +10,25 @@ def showerror(idList):
         idList = [idList]
 
     for i in idList:
+        temp = []
         with open(path+'error'+str(i)+'.csv', 'rb') as f:
             read = csv.reader(f)
             for line in read:
-                error_value.append(line[0])
-
-
-
+                temp.append(line[0])
+            error_value.append(temp)
 
     fig = plt.figure()
-    ax = fig.add_subplot(2,2,1)
-    ax.set_aspect(1)
-    ax1 = fig.add_subplot(2,2,2)
-    ax2 = fig.add_subplot(2, 2,3)
-    ax3 = fig.add_subplot(2,2,4)
-    ax3.plot(error_value,'r-', label='error_reward', lw=1)
-
-    ax3.grid(True)
-
-    cir1 = Circle(xy=(0.0, 0.0), radius=5, alpha=0.4)
-    ax.add_patch(cir1)
-    # ax.plot(cir1, 'y-')
+    ax = fig.add_subplot(1,1,1)
+    lineColor = ['r-', 'b-', 'g-', 'y-']
+    for i, error in enumerate(error_value):
+        ax.plot(error, lineColor[i], label='error_reward', lw=1)
+    ax.grid(True)
     plt.show()
 
 def show(i):
     movestorex, movestorey=[], []
     wheelx, wheely = [], []
     action_r, action_s =[], []
-    # error_x, error_value, total_reward = [], [], []
     error_value = []
     path=sys.argv[1]
 
@@ -97,4 +88,4 @@ def show(i):
 if __name__=="__main__":
     import sys
     # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    show(0)
+    showerror([0])
