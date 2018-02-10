@@ -15,15 +15,16 @@ class PathFollowingV1(gym.Env):
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
 
     def _reset(self):
-        wheelx, wheely = 0, 10
-        self.car = AGV([wheelx, wheely], np.pi * 0.5)
+        self.car = AGV([self.wheelx, self.wheely], np.pi * 0.5)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
 
         hislength = self.historyLength
-        self.error_buffer = [0] * hislength
-        self.beta_buffer = [0] * hislength
+        self.error_buffer = [self.wheely - self.r] * hislength
+        self.beta_buffer = [float(self.car.q[3])] * hislength
+        self.sin_theta_buffer = [np.sin(self.car.q[2])] * hislength
+        self.cos_theta_buffer = [np.cos(self.car.q[2])] * hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
 
@@ -33,23 +34,28 @@ class PathFollowingV1(gym.Env):
         self.speed_record = []
         self.error_record = []
 
-        errorState, betaState = [wheely-self.r] * hislength, [float(self.car.q[3])] * hislength
+        errorState, betaState, sinThetaState, cosThetaState =\
+            [self.wheely-self.r] * hislength, [float(self.car.q[3])] * hislength, [np.sin(self.car.q[2])] * hislength, [np.cos(self.car.q[2])] * hislength
+        # errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
         u0State, u1State = [0] * hislength, [0] * hislength
-        self.state = errorState + betaState + u0State + u1State
+        self.state = errorState + betaState + sinThetaState + cosThetaState + u0State + u1State
+        # self.state = errorState + betaState + u0State + u1State
 
         return np.array(self.state)
 
-    def __init__(self, max_time=500, errorBound= 1, hislength=4):
-        wheelx, wheely = 0, 10
-        self.car = AGV([wheelx, wheely], np.pi * 0.5)
+    def __init__(self, max_time=500, errorBound= 1, hislength=4, r=10, initPos=(0, 10.3)):
+        self.wheelx, self.wheely = initPos
+        self.car = AGV([self.wheelx, self.wheely], np.pi * 0.5)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
-        self.r = 10
+        self.r = r
 
         self.historyLength = hislength
-        self.error_buffer = [wheely - self.r] * hislength
-        self.beta_buffer = [0.5 * np.pi] * hislength
+        self.error_buffer = [self.wheely - self.r] * hislength
+        self.beta_buffer = [float(self.car.q[3])] * hislength
+        self.sin_theta_buffer = [np.sin(self.car.q[2])] * hislength
+        self.cos_theta_buffer = [np.cos(self.car.q[2])] * hislength
         self.u0_buffer = [0] * hislength
         self.u1_buffer = [0] * hislength
 
@@ -117,6 +123,8 @@ class PathFollowingV1(gym.Env):
 
         self.u0_buffer.append(speed)
         self.u1_buffer.append(orientationSpeed)
+        self.sin_theta_buffer.append(np.sin(theta))
+        self.cos_theta_buffer.append(np.cos(theta))
         self.beta_buffer.append(beta)
 
         error = wheely - self.r
@@ -130,11 +138,14 @@ class PathFollowingV1(gym.Env):
         hislen = self.historyLength
         if len(self.error_buffer) > hislen:
             self.error_buffer.pop(0)
+            self.sin_theta_buffer.pop(0)
+            self.cos_theta_buffer.pop(0)
             self.beta_buffer.pop(0)
             self.u0_buffer.pop(0)
             self.u1_buffer.pop(0)
 
-        st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        st = self.error_buffer + self.sin_theta_buffer + self.cos_theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        # st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
         self.state = np.array(st)
 
         error_reward = np.square(error) * 8.0E-1
@@ -147,7 +158,8 @@ class PathFollowingV1(gym.Env):
         if done:
             return np.array(self.state), -reward, done, {"result": [], \
                                                          # "avgError": self.totalError / float(self.time),
-                                                         "avgError": self.maxError,
+                                                         # "avgError": self.maxError,
+                                                         "avgError": abs(error),
                                                          "moveStore": [self.center_x_record, self.center_y_record],
                                                          "action": [self.action_r_record, self.action_s_record],
                                                          "wheel": [self.wheel_x_record, self.wheel_y_record],
