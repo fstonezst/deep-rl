@@ -281,6 +281,7 @@ def predictWork(sess, model, env, args, actor):
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
+    no = model.split('_')[1]
     times = 600
 
     for i in range(1):
@@ -303,23 +304,24 @@ def predictWork(sess, model, env, args, actor):
         speed = info.get("speed")
         error_record = info.get("error")
 
+        # no = str(i)
 
-        with open('movePath'+str(i)+'.csv','wb') as f:
+        with open('movePath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(moveStorex,moveStorey):
                 csv_writer.writerow([x,y])
 
-        with open('wheelPath'+str(i)+'.csv','wb') as f:
+        with open('wheelPath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(wheelx,wheely):
                 csv_writer.writerow([x,y])
 
-        with open('action'+str(i)+'.csv','wb') as f:
+        with open('action'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(action_r,action_s):
                 csv_writer.writerow([x,y])
 
-        with open('error'+str(i)+'.csv','wb') as f:
+        with open('error'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x in error_record:
                 csv_writer.writerow([x])
