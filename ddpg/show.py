@@ -2,90 +2,191 @@ import csv
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-def showerror(idList):
-    error_value = []
-    path = sys.argv[1]
 
-    if not isinstance(idList, list):
-        idList = [idList]
+class Drawer(object):
 
-    for i in idList:
-        temp = []
-        with open(path+'error'+str(i)+'.csv', 'rb') as f:
-            read = csv.reader(f)
-            for line in read:
-                temp.append(line[0])
-            error_value.append(temp)
+    def __init__(self, path, lineColor=['k-.', 'b--', 'r-', 'y-']):
+        self.lineColor = lineColor
+        self.path = path
 
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    lineColor = ['r-', 'b-', 'g-', 'y-']
-    for i, error in enumerate(error_value):
-        ax.plot(error, lineColor[i], label='error_reward', lw=1)
-    ax.grid(True)
-    plt.show()
+    def showError(self, idlist):
+        error_value = []
+        if not isinstance(idlist, list):
+            idlist = [idlist]
 
-def show(i):
-    movestorex, movestorey=[], []
-    wheelx, wheely = [], []
-    action_r, action_s =[], []
-    error_value = []
-    path=sys.argv[1]
+        for i in idlist:
+            with open(self.path+'error'+str(i)+'.csv', 'rb') as f:
+                read = csv.reader(f)
+                temp = []
+                for line in read:
+                    temp.append(line[0])
+                error_value.append(temp)
 
-    with open(path+'movepath'+str(i)+'.csv','rb') as f:
-        read = csv.reader(f)
-        for line in read:
-            movestorex.append(line[0])
-            movestorey.append(line[1])
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for i, error in enumerate(error_value):
+            mylabel = 'epoch '+str(idlist[i])
+            ax.plot(error, self.lineColor[i], label=mylabel, lw=1)
+        ax.grid(True)
+        ax.set_xlabel("time(s)")
+        ax.set_ylabel("error(m)")
+        ax.legend(loc='best')
+        plt.show()
 
-    with open(path+'wheelpath'+str(i)+'.csv','rb') as f:
-        read = csv.reader(f)
-        for line in read:
-            wheelx.append(line[0])
-            wheely.append(line[1])
+    def showSpeed(self, idlist):
+        speed_value = []
+        if not isinstance(idlist, list):
+            idlist = [idlist]
 
-    with open(path+'action'+str(i)+'.csv','rb') as f:
-        read = csv.reader(f)
-        for line in read:
-            action_r.append(line[0])
-            action_s.append(line[1])
+        for i in idlist:
+            with open(self.path+'speed'+str(i)+'.csv', 'rb') as f:
+                read = csv.reader(f)
+                temp = []
+                for line in read:
+                    temp.append(line[0])
+                speed_value.append(temp)
 
-    with open(path+'error'+str(i)+'.csv','rb') as f:
-        read = csv.reader(f)
-        for line in read:
-            error_value.append(line[0])
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for i, value in enumerate(speed_value):
+            mylabel = 'epoch '+str(idlist[i])
+            ax.plot(value, self.lineColor[i], label=mylabel, lw=1)
+        ax.grid(True)
+        ax.set_xlabel("time(s)")
+        ax.set_ylabel("speed(w/s)")
+        ax.legend(loc='best')
+        plt.show()
 
-    # with open(path+'reward'+str(i)+'.csv','rb') as f:
-    #     read = csv.reader(f)
-    #     for line in read:
-    #         speed_reward.append(line[0])
-    #         error_reward.append(line[1])
-    #         total_reward.append(float(line[0]) + float(line[1]))
+    def showOrientation(self, idlist):
+        action_value = []
+
+        if not isinstance(idlist, list):
+            idlist = [idlist]
+
+        for i in idlist:
+            with open(self.path+'action'+str(i)+'.csv', 'rb') as f:
+                read = csv.reader(f)
+                temp = []
+                for line in read:
+                    temp.append(line[1])
+                action_value.append(temp)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        for i, value in enumerate(action_value):
+            mylabel = 'epoch '+str(idlist[i])
+            ax.plot(value, self.lineColor[i], label=mylabel, lw=1)
+        ax.grid(True)
+        ax.set_xlabel("time(s)")
+        ax.set_ylabel("orientation torques(N)")
+        ax.legend(loc='best')
+        plt.show()
+
+    def showRotation(self,idlist):
+        action_value = []
+
+        if not isinstance(idlist, list):
+            idlist = [idlist]
+
+        for i in idlist:
+            with open(self.path+'action'+str(i)+'.csv', 'rb') as f:
+                read = csv.reader(f)
+                temp = []
+                for line in read:
+                    temp.append(line[0])
+                action_value.append(temp)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        for i, value in enumerate(action_value):
+            mylabel = 'epoch '+str(idlist[i])
+            ax.plot(value, self.lineColor[i], label=mylabel, lw=1)
+        ax.grid(True)
+        ax.set_xlabel("time(s)")
+        ax.set_ylabel("rotation torques(N)")
+        ax.legend(loc='best')
+        plt.show()
+
+    def showPath(self, idlist, aspect=True):
+        path_value = []
+
+        if not isinstance(idlist, list):
+            idlist = [idlist]
+
+        for i in idlist:
+            with open(self.path+'wheelPath'+str(i)+'.csv','rb') as f:
+                read = csv.reader(f)
+                wheelx, wheely = [], []
+                for line in read:
+                    wheelx.append(line[0])
+                    wheely.append(line[1])
+                path_value.append([wheelx[:200], wheely[:200]])
+
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for i, error in enumerate(path_value):
+            mylabel = 'epoch '+str(idlist[i])
+            ax.plot(error[0], error[1], self.lineColor[i], label=mylabel, lw=1)
+        if aspect:
+            ax.set_aspect(1)
+        cir1 = Circle(xy=(0.0, 0.0), radius=5, alpha=0.4)
+        ax.add_patch(cir1)
+        ax.set_xlabel("X(m)")
+        ax.set_ylabel("Y(m)")
+        ax.legend(loc='best')
+        plt.show()
+
+    def showLoss(self, fileName='loss.csv'):
+        import csv
+        loss = []
+        with open(self.path + fileName,'r') as f:
+            reader = csv.reader(f)
+            reader.next()
+            for row in reader:
+                loss.append(float(row[2]))
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        ax.plot(loss, 'r-', label='loss', lw=1)
+        ax.grid(True)
+        ax.set_xlabel("step")
+        ax.set_ylabel("loss")
+        # ax.legend(loc='best')
+        plt.show()
+
+    def showReward(self, fileName='Reward.csv'):
+        import csv
+        reward = []
+        with open(self.path + fileName,'r') as f:
+            reader = csv.reader(f)
+            reader.next()
+            for row in reader:
+                reward.append(float(row[2]))
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        ax.plot(reward, 'r-', label='reward', lw=1)
+        ax.grid(True)
+        ax.set_xlabel("step")
+        ax.set_ylabel("reward")
+        # ax.legend(loc='best')
+        plt.show()
 
 
 
-    fig = plt.figure()
-    ax = fig.add_subplot(2,2,1)
-    ax.set_aspect(1)
-    ax1 = fig.add_subplot(2,2,2)
-    ax2 = fig.add_subplot(2, 2,3)
-    ax3 = fig.add_subplot(2,2,4)
-    # ax.plot(movestorex,movestorey,'b-o',label='move_path')
-    ax.plot(wheelx, wheely,'r',label='wheel_path')
-    ax2.plot(action_r,'y-o',label='dir')
-    ax1.plot(action_s,'r-*',label='speed')
 
-    ax3.plot(error_value,'r-', label='error_reward', lw=1)
 
-    ax3.grid(True)
-
-    cir1 = Circle(xy=(0.0, 0.0), radius=5, alpha=0.4)
-    ax.add_patch(cir1)
-    # ax.plot(cir1, 'y-')
-    plt.show()
 
 
 if __name__=="__main__":
-    import sys
-    # show(sys./home/peter/Documents/log/showLog.py:45argv[2])
-    showerror([0])
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/results/gym_ddpg/true_csv/', [508, 530, 554]
+    path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/results/gym_ddpg/linearLog/', [738, 809, 832]
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [0]
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
+
+    draw = Drawer(path)
+    # draw.showLoss()
+    # draw.showReward()
+    # draw.showError(modelNo)
+    draw.showPath(modelNo, aspect=False)
+    # draw.showRotation(modelNo)
+    # draw.showOrientation(modelNo)

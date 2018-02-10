@@ -104,16 +104,17 @@ def train(sess, env, args, actor, critic):
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
 
-        # for j in range(int(args['max_episode_len'])):
+        if args['envno'] == '2':
+            isConvergence = not (last_loss > 4.0E-3 or last_error > 0.1 or last_times < env.max_time or lastReward < -0.01 or i < 500)
+        elif args['envno'] == '1':
+            isConvergence = not (last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500)
 
-        isConvergence = True
-        # if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_error > 0.1 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-           isConvergence = False
+
+        if not isConvergence:
            count = 10
-           # if lastReward > -0.16 and i > (curr_model_no + 20):
-           #     curr_model_no = i
-               # saver.save(sess, 'model_'+str(i))
+           if lastReward > -0.18 and i > (curr_model_no + 20):
+               curr_model_no = i
+               saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
             if count == 0:
@@ -307,6 +308,7 @@ def predictWork(sess, model, env, args, actor):
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
+    no = model.split('_')[1]
     times = 600
 
     for i in range(1):
@@ -329,25 +331,31 @@ def predictWork(sess, model, env, args, actor):
         speed = info.get("speed")
         error_record = info.get("error")
 
+        # no = str(i)
 
-        with open('movePath'+str(i)+'.csv','wb') as f:
+        with open('movePath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(moveStorex,moveStorey):
                 csv_writer.writerow([x,y])
 
-        with open('wheelPath'+str(i)+'.csv','wb') as f:
+        with open('wheelPath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(wheelx,wheely):
                 csv_writer.writerow([x,y])
 
-        with open('action'+str(i)+'.csv','wb') as f:
+        with open('action'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(action_r,action_s):
                 csv_writer.writerow([x,y])
 
-        with open('error'+str(i)+'.csv','wb') as f:
+        with open('error'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x in error_record:
+                csv_writer.writerow([x])
+
+        with open('speed'+no+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x in speed:
                 csv_writer.writerow([x])
 
         if len > 0:
