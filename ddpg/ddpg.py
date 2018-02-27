@@ -106,12 +106,12 @@ def train(sess, env, args, actor, critic):
 
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.005 or i < 500:
            isConvergence = False
            count = 10
-           # if lastReward > -0.16 and i > (curr_model_no + 30):
-           #     curr_model_no = i
-           #     saver.save(sess, 'model_'+str(i))
+           if lastReward > -0.16 and i > (curr_model_no + 30):
+               curr_model_no = i
+               saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
             if count == 0:
@@ -261,7 +261,7 @@ def train(sess, env, args, actor, critic):
                             for x in error_record:
                                 csv_writer.writerow([x])
 
-                if j > 0:
+                if j > 0 and i % 100 == 0:
                     if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
@@ -326,7 +326,7 @@ def predictWork(sess, model, env, args, actor):
             for x in error_record:
                 csv_writer.writerow([x])
 
-        if len > 0:
+        if len > 0 and i % 1000 == 0:
             ave_error = info.get("avgError")
             print(
                 # 'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
