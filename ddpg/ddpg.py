@@ -18,6 +18,7 @@ from gym import wrappers
 import argparse
 import pprint as pp
 from pathfollowing_env_v2 import PathFollowingV2
+from pathfollowing_env_v1 import PathFollowingV1
 from pathfollowing_env_v3 import PathFollowingV3
 from replay_buffer import ReplayBuffer
 from Critic import CriticNetwork
@@ -75,17 +76,11 @@ def train(sess, env, args, actor, critic):
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
     totalTime = 0
-    ave_error = 0
-    exp_time = int(args['max_episodes'])-10
-    oriNoiseRate, rotNoiseRate = 1, 0.8
-
-
-    last_loss, last_times = 4.0E8, 0
-    lastReward = -1
-    ave_err = 4
     count = 10
-    print "===================="+str(env.car.mess)+"================="
-
+    curr_model_no = 0
+    oriNoiseRate, rotNoiseRate = 1, 0.8
+    last_loss, last_times, lastReward, last_error = 4.0E8, 0, -1, 4
+    isConvergence = True
 
     for i in range(int(args['max_episodes'])):
         if totalTime > int(args['max_episodes_len']):
@@ -110,14 +105,24 @@ def train(sess, env, args, actor, critic):
         total_noise0, total_noise1 = [], []
         orientationNoise, rotationNoise = 0, 0
 
-        # for j in range(int(args['max_episode_len'])):
-
         isConvergence = True
-        if last_loss > 4.0E-3 or ave_err > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.005 or i < 500:
            isConvergence = False
            count = 10
+           if lastReward > -0.16 and i > (curr_model_no + 30):
+               curr_model_no = i
+               saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
+            if count == 0:
+                #     env.setCarMess(500 + random.randint(100, 500))
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
+                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
+                #     print "===================="+str(env.car.mess)+"================="
+                #     count = 10
+                saver.save(sess,'model_'+str(i))
+                break
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -142,14 +147,6 @@ def train(sess, env, args, actor, critic):
                 total_noise1.append(rotationNoise)
                 a = dirOut + noise
             else:
-                if count == 0:
-                    saver.save(sess,'model_'+str(i))
-                    count = -1
-                #     env.setCarMess(500 + random.randint(100, 500))
-                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
-                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
-                #     print "===================="+str(env.car.mess)+"================="
-                #     count = 10
                 a = dirOut
 
             s2, r, terminal, info = env.step(a)
@@ -168,6 +165,7 @@ def train(sess, env, args, actor, critic):
                     s2_batch, actor.predict_target(s2_batch))
 
                 y_i = []
+
                 for k in range(int(args['minibatch_size'])):
                     if t_batch[k]:
                         y_i.append(r_batch[k])
@@ -199,9 +197,6 @@ def train(sess, env, args, actor, critic):
                     grads = critic.action_gradients(s_batch, a_outs)
                     actor.train(s_batch, grads[0])
 
-                    # grads = critic.action_gradients(sb, ab) ##
-                    # actor.train(sb, grads[0]) ##
-
                     aGrads1 = map(lambda x:x[0],grads[0])
                     aGrads2 = map(lambda x:x[1],grads[0])
 
@@ -221,30 +216,29 @@ def train(sess, env, args, actor, critic):
 
                 totalTime += j
 
-                moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
-                wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
                 action_r, action_s = info.get("action")[0], info.get("action")[1]
                 speed = info.get("speed")
-                error_record = info.get("error")
-
                 avgError = info.get("avgError")
 
-                debug = True
+                summary_str = sess.run(summary_ops, feed_dict={
+                    # summary_vars[0]: ep_reward ,
+                    summary_vars[0]: ep_reward / float(j),
+                    summary_vars[1]: ep_ave_max_q / float(j),
+                    summary_vars[2]: total_loss / float(j),
+                    summary_vars[3]: avgError,
+                    summary_vars[4]: total_gradient / float(j),
+                    summary_vars[5]: total_gradient2 / float(j)
+                })
+
+                writer.add_summary(summary_str, i)
+
+                writer.flush()
+
+                debug = True if str(args['debug']) == "True" else False
                 if debug:
-                    summary_str = sess.run(summary_ops, feed_dict={
-                        # summary_vars[0]: ep_reward ,
-                        summary_vars[0]: ep_reward / float(j),
-                        summary_vars[1]: ep_ave_max_q / float(j),
-                        summary_vars[2]: total_loss / float(j),
-                        summary_vars[3]: avgError,
-                        summary_vars[4]: total_gradient / float(j),
-                        summary_vars[5]: total_gradient2 / float(j)
-                    })
-
-                    writer.add_summary(summary_str, i)
-
-                    writer.flush()
-
+                    moveStorex, moveStorey= info.get("moveStore")[0], info.get("moveStore")[1]
+                    wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
+                    error_record = info.get("error")
                     # if (not isConvergence and i > 450 and (i % 30 == 0)) or (isConvergence and (i % 20 == 0)):
                     if (not isConvergence and (i % 100 == 0)) or (isConvergence and (i % 10 == 0)):
 
@@ -268,7 +262,7 @@ def train(sess, env, args, actor, critic):
                             for x in error_record:
                                 csv_writer.writerow([x])
 
-                if j > 0:
+                if j > 0 and i % 100 == 0:
                     if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
@@ -276,9 +270,11 @@ def train(sess, env, args, actor, critic):
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
-                ave_err = ave_error
+                last_error = avgError
                 last_times = j
                 break
+    if not isConvergence:
+        saver.save(sess, 'model_final')
     writer.close()
 
 def predictWork(sess, model, env, args, actor):
@@ -286,7 +282,8 @@ def predictWork(sess, model, env, args, actor):
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
-    times = 2000
+    no = model.split('_')[1]
+    times = 600
 
     for i in range(1):
         s, info, len = env.reset(), None, 0
@@ -308,28 +305,29 @@ def predictWork(sess, model, env, args, actor):
         speed = info.get("speed")
         error_record = info.get("error")
 
+        # no = str(i)
 
-        with open('movePath'+str(i)+'.csv','wb') as f:
+        with open('movePath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(moveStorex,moveStorey):
                 csv_writer.writerow([x,y])
 
-        with open('wheelPath'+str(i)+'.csv','wb') as f:
+        with open('wheelPath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(wheelx,wheely):
                 csv_writer.writerow([x,y])
 
-        with open('action'+str(i)+'.csv','wb') as f:
+        with open('action'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x,y in zip(action_r,action_s):
                 csv_writer.writerow([x,y])
 
-        with open('error'+str(i)+'.csv','wb') as f:
+        with open('error'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x in error_record:
                 csv_writer.writerow([x])
 
-        if len > 0:
+        if len > 0 and i % 1000 == 0:
             ave_error = info.get("avgError")
             print(
                 # 'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
@@ -412,6 +410,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', help='gpu index', default='0')
     parser.add_argument('--model', help='restore model', default='')
     parser.add_argument('--envno', help='env NO.', default='3')
+    parser.add_argument('--debug', help='store path', default='False')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
@@ -420,10 +419,9 @@ if __name__ == '__main__':
     parser.set_defaults(use_gym_monitor=False)
     parser.set_defaults(max_episodes=1.0E4)
     parser.set_defaults(max_episodes_len=1.0E5)
-    parser.set_defaults(minibatch_size=64)
-    # parser.set_defaults(minibatch_size=128)
+    # parser.set_defaults(minibatch_size=64)
+    parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')
-    # parser.set_defaults(use_gym_monitor=False)
 
     args = vars(parser.parse_args())
 

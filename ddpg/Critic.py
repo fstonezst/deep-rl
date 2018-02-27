@@ -55,7 +55,6 @@ class CriticNetwork(object):
     def create_critic_network(self):
         times = 1
         N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
-        DROPOU_KEEP_PROB = 0.5
 
         # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim])
@@ -66,8 +65,8 @@ class CriticNetwork(object):
 
         # first layer for state
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, activation='relu',regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
         net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activation(net,'relu')
 
@@ -77,6 +76,7 @@ class CriticNetwork(object):
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1+self.a_dim), maxval=1/np.sqrt(N_HIDDEN_1+self.a_dim))
         net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init)
+        # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2)
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
