@@ -33,20 +33,22 @@ class PathFollowingV2(gym.Env):
 
         self.center_x_record, self.center_y_record = [], []
         self.wheel_x_record, self.wheel_y_record = [], []
-        self.action_r_record, self.action_s_record = [], []
+        self.action_r_record, self.action_s_record = [], [] #[0] * hislength, [0] * hislength
         self.speed_record = []
         self.error_record = []
 
         # errorState, betaState, thetaState = [0] * hislength, [float(self.car.q[3])] * hislength, [float(self.car.q[2])] * hislength
         errorState, betaState = [0] * hislength, [float(self.car.q[3])] * hislength
         u0State, u1State = [0] * hislength, [0] * hislength
+        # actionrState, actionoState = [0] * (hislength-1), [0] * (hislength-1)
+
         # self.state = errorState + betaState + thetaState + u0State + u1State
-        self.state = errorState + betaState + u0State + u1State
+        self.state = errorState + betaState + u0State + u1State # + actionoState + actionrState
 
         return np.array(self.state)
 
-    def __init__(self, max_time=1000, errorBound=1, r=5, hislength=4):
-        self.car = AGV([r,0], np.pi)
+    def __init__(self, max_time=1000, errorBound=1, r=5, hislength=3):
+        self.car = AGV([r, 0], np.pi)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
@@ -152,22 +154,16 @@ class PathFollowingV2(gym.Env):
             self.u0_buffer.pop(0)
             self.u1_buffer.pop(0)
 
-        # st = self.error_buffer + self.theta_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
-        st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
+        st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer #\
+             # + self.action_r_record[-hislen:-2] + self.action_s_record[-hislen:-2]
         self.state = np.array(st)
 
-        # diff1, diff2 = actionDiff[0], actionDiff[1]
 
         error_reward = np.square(error) * 8.0E-1
         speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)
 
         reward = speed_reward + error_reward
 
-
-        # if abs(diff1) > 0.01:
-        #     reward += (1-ratio) * abs(actionDiff[0])
-        # if abs(diff2) > 100:
-        #     reward += (1-ratio) * abs(actionDiff[1])
 
         done = True if self.time > self.max_time or abs(error) > self.error_bound else False
 
