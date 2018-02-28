@@ -8,7 +8,7 @@ def error_fun(error):
 
     #导函数
     derivative = 1.6E0 * error
-    return error_reward
+    return error_reward * 0.9995
     # return derivative
     # return 0
 
@@ -20,18 +20,22 @@ def speed_fun(speed):
     return speed_reward
     # return derivative
     # return 0
+def out_fun(out):
+    return (out / 0.5) * 0.0005
 
 
+# step, start, end = 0.01, 0.0, 0.1  #PathFollowingV2.error_bound
 step, start, end = 0.005, 0.0, 0.05  #PathFollowingV2.error_bound
 X = np.arange(start, end, step)
-step, start, end = 0.3, 1, 4         #AGV.MAX_SPEED
+step, start, end = 0.05, 0, 0.5         #AGV.MAX_SPEED
 Y = np.arange(start, end, step)
 X, Y = np.meshgrid(X, Y)
 
 # total reward
 # Z = np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y))
+Z = np.matrix(map(error_fun, X))+ np.matrix(map(out_fun, Y))
 #speed reward proportion
-Z = np.matrix(map(speed_fun, Y))/(np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y)))
+# Z = np.matrix(map(speed_fun, Y))/(np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y)))
 # diff
 # Z = np.matrix(map(error_fun, X)) - np.matrix(map(speed_fun, Y))
 

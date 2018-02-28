@@ -100,20 +100,19 @@ def train(sess, env, args, actor, critic):
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
         orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
-        rotationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ROTATION * rotNoiseRate)
 
         total_noise0, total_noise1 = [], []
-        orientationNoise, rotationNoise = 0, 0
+        orientationNoise = 0
 
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or last_error > 0.13:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or last_error >= 0.11:
            isConvergence = False
            count = 10
            # if lastReward > -0.01 and i > (curr_model_no + 30):
-           if (last_error < 0.15 and i > (curr_model_no + 30)) or last_error <= 0.1:
-               curr_model_no = i
-               saver.save(sess, 'model_'+str(i))
+           # if (last_error < 0.15 and i > (curr_model_no + 30)) or last_error <= 0.1:
+           #     curr_model_no = i
+           #     saver.save(sess, 'model_'+str(i))
         else:
             count -= 1
             if count == 0:
@@ -134,18 +133,19 @@ def train(sess, env, args, actor, critic):
 
             if not isConvergence:
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
-                rotation, rotationNoise = dirOut[0][1], rotationN.ornstein_uhlenbeck_level(rotationNoise)
+                # rotation, rotationNoise = dirOut[0][1], rotationN.ornstein_uhlenbeck_level(rotationNoise)
                 if abs(orientation) <= 0.01:
                     orientationNoise = 0
                 while abs(orientationNoise) > abs(orientation) * oriNoiseRate:
                     orientationNoise /= 2
-                if abs(rotation) <= 1:
-                    rotationNoise = 0
-                while abs(rotationNoise) > abs(rotation) * rotNoiseRate:
-                    rotationNoise /= 2
-                noise = np.array([orientationNoise, rotationNoise])
+                # if abs(rotation) <= 1:
+                #     rotationNoise = 0
+                # while abs(rotationNoise) > abs(rotation) * rotNoiseRate:
+                #     rotationNoise /= 2
+                # noise = np.array([orientationNoise, rotationNoise])
+                noise = np.array([orientationNoise])
                 total_noise0.append(orientationNoise)
-                total_noise1.append(rotationNoise)
+                # total_noise1.append(rotationNoise)
                 a = dirOut + noise
             else:
                 a = dirOut
@@ -191,19 +191,17 @@ def train(sess, env, args, actor, critic):
                 total_loss += np.amax(loss)
 
                 # Update the actor policy using the sampled gradient
-                aGrads1, aGrads2 = None,None
+                aGrads1= None
                 if not isConvergence:
                     a_outs = actor.predict(s_batch)
                     grads = critic.action_gradients(s_batch, a_outs)
                     actor.train(s_batch, grads[0])
 
                     aGrads1 = map(lambda x:x[0],grads[0])
-                    aGrads2 = map(lambda x:x[1],grads[0])
+                    # aGrads2 = map(lambda x:x[1],grads[0])
 
                 if np.amax(aGrads1) is not None:
                     total_gradient += np.amax(aGrads1)
-                if np.amax(aGrads2) is not None:
-                    total_gradient2 += np.amax(aGrads2)
 
                 # Update target networks
                 actor.update_target_network()
@@ -265,7 +263,7 @@ def train(sess, env, args, actor, critic):
                 if j > 0 and i % 100 == 0:
                     if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
-                        print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
+                        # print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     print(
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))

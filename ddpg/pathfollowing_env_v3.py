@@ -78,7 +78,7 @@ class PathFollowingV3(gym.Env):
 
     def __init__(self, hislen=2, isRandom=False):
         self.random_model = isRandom
-        self.max_time = 1000
+        self.max_time = 20
         self.viewer = None
         self.historyLength = hislen
 
@@ -139,7 +139,8 @@ class PathFollowingV3(gym.Env):
 
         # control
         orientation = float(action[0][0])
-        action[0].append(0)
+        action = np.array([[orientation, 0]])
+        # np.append(action[0], 0)
         self.car.controlInput(np.matrix(action))
 
         # AGV new state
@@ -213,7 +214,8 @@ class PathFollowingV3(gym.Env):
         speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
         reward = speed_reward + error_reward
         orientation, rotation = float(action[0][0]), float(action[0][1])
-        reward = reward * 0.95 + 0.05 * (abs(orientation) / AGV.MAX_ORIENTATION)
+        # reward = reward * 0.95 + 0.05 * (abs(orientation) / AGV.MAX_ORIENTATION)
+        reward = reward * 0.9995 + 0.0005 * (abs(orientation) / AGV.MAX_ORIENTATION)
 
 
         # Record
