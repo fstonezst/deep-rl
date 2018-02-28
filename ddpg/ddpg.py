@@ -107,10 +107,11 @@ def train(sess, env, args, actor, critic):
 
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.005 or i < 500:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.01 or last_error > 0.13:
            isConvergence = False
            count = 10
-           if lastReward > -0.16 and i > (curr_model_no + 30):
+           # if lastReward > -0.01 and i > (curr_model_no + 30):
+           if (last_error < 0.15 and i > (curr_model_no + 30)) or last_error <= 0.1:
                curr_model_no = i
                saver.save(sess, 'model_'+str(i))
         else:
@@ -153,7 +154,6 @@ def train(sess, env, args, actor, critic):
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
-            lastReward = r
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
             if replay_buffer.size() > int(args['minibatch_size']):
@@ -271,10 +271,11 @@ def train(sess, env, args, actor, critic):
                            int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
                 last_error = avgError
+                lastReward = int(ep_reward) / float(j)
                 last_times = j
                 break
     if not isConvergence:
-        saver.save(sess, 'model_final')
+        saver.save(sess, 'model_0')
     writer.close()
 
 def predictWork(sess, model, env, args, actor):
@@ -327,6 +328,11 @@ def predictWork(sess, model, env, args, actor):
             for x in error_record:
                 csv_writer.writerow([x])
 
+        with open('speed'+no+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x in speed:
+                csv_writer.writerow([x])
+
         if len > 0 and i % 1000 == 0:
             ave_error = info.get("avgError")
             print(
@@ -340,12 +346,10 @@ def main(args):
     # os.environ["CUDA_VISIBLE_DEVICES"] = str(random.randint(0, 1))
     with tf.Session() as sess:
 
-        # env = gym.make(args['env'])
-        # env = PathFollowing()
         if args['envno'] == '2':
             env = PathFollowingV2()
-        # elif args['envno'] == '1':
-        #     env = PathFollowingV1()
+        elif args['envno'] == '1':
+            env = PathFollowingV1()
         elif args['envno'] == '3':
             env = PathFollowingV3()
         else:
@@ -417,8 +421,8 @@ if __name__ == '__main__':
 
     # parser.set_defaults(use_gym_monitor=True)
     parser.set_defaults(use_gym_monitor=False)
-    parser.set_defaults(max_episodes=1.0E4)
-    parser.set_defaults(max_episodes_len=1.0E5)
+    parser.set_defaults(max_episodes=2.0E4)
+    parser.set_defaults(max_episodes_len=1.0E6)
     # parser.set_defaults(minibatch_size=64)
     parser.set_defaults(minibatch_size=128)
     # parser.set_defaults(env='PathFollowing-v0')

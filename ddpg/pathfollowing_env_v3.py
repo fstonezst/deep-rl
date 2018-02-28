@@ -16,14 +16,18 @@ class PathFollowingV3(gym.Env):
     max_speed, min_speed = AGV.MAX_SPEED, 0
     max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
     error_bound = 1
-    history_length = 4
+    # history_length = 4
     leftOrRightTime = 0
 
     def _reset(self):
         # random = self.np_random
-        history_len = 4
-        wheelx, wheely = random.randint(-3, 3) * 0.1 + 10, 0
-        theta = random.randint(-35, 35) * 0.01 + np.pi
+        history_len = self.historyLength
+        if self.random_model:
+            wheelx, wheely = random.randint(-3, 3) * 0.1 + 10, 0
+            theta = random.randint(-35, 35) * 0.01 + np.pi
+        else:
+            wheelx, wheely = 10.1, 0
+            theta = np.pi
         self.car = AGV(wheelPos=[wheelx, wheely], theta=theta)
         self.totalError = 0
         self.maxError = 0
@@ -31,12 +35,17 @@ class PathFollowingV3(gym.Env):
         self.lastAction = 0
 
         #ERROR Cul
-        self.left = random.randint(0,1)
-
         self.startx, self.starty = 10, 0
-        self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0,20) * 0.1, 10, \
+        if self.random_model:
+            self.left = random.randint(0, 1)
+            self.firstLineLength, self.secondLineLength, self.midLineLength = random.randint(0,20) * 0.1, 10, \
                                                                           random.randint(20, 30) * 0.1
-        self.firstArcR, self.secondArcR = random.choice([4, 6]), random.choice([4, 6])
+            self.firstArcR, self.secondArcR = random.choice([4, 6]), random.choice([4, 6])
+        else:
+            self.left = 1
+            self.firstLineLength, self.secondLineLength, self.midLineLength = 4, 10, 4
+            self.firstArcR, self.secondArcR = 6, 4
+
         if self.left:
             self.firstArcx, self.firstArcy = self.startx-self.firstArcR, self.starty+self.firstLineLength
             self.secondArcx, self.secondArcy = self.firstArcx-self.midLineLength, self.firstArcy+self.firstArcR+self.secondArcR
@@ -60,13 +69,15 @@ class PathFollowingV3(gym.Env):
         self.u0_buffer = [0] * history_len
         self.u1_buffer = [0] * history_len
 
+        # state
         errorState, betaState = [0] * history_len, [float(self.car.q[3])] * history_len
         u0State, u1State = [0] * history_len, [0] * history_len
 
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=3):
+    def __init__(self, hislen=2, isRandom=False):
+        self.random_model = isRandom
         self.max_time = 1000
         self.viewer = None
         self.historyLength = hislen
@@ -109,6 +120,8 @@ class PathFollowingV3(gym.Env):
         self._seed(self.seedNum)
         self._reset()
 
+    def setMaxTime(self, times):
+        self.max_time=times
     def setCarMess(self, m):
         self.car.setMess(m)
 
@@ -146,6 +159,7 @@ class PathFollowingV3(gym.Env):
         firstArcx, firstArcy = self.firstArcx, self.firstArcy
         secondArcx, secondArcy = self.secondArcx, self.secondArcy
 
+        # 左正右负
         if left:
             if wheely <= firstArcy:
                 # first line
@@ -186,11 +200,6 @@ class PathFollowingV3(gym.Env):
             self.u1_buffer.pop(0)
 
         # State
-        # error_state = self.error_buffer[-PathFollowingV3.history_length:]
-        # thetaState = self.theta_record_buffer[-history_len:]
-        # BState = self.beta_buffer[-history_len:]
-        # u0_state = self.u0_buffer[-PathFollowingV3.history_length:]
-        # u1_state = self.u1_buffer[-PathFollowingV3.history_length:]
 
         st = self.error_buffer + self.beta_buffer + self.u0_buffer + self.u1_buffer
         self.state = np.array(st)
@@ -199,10 +208,11 @@ class PathFollowingV3(gym.Env):
         error_reward = np.square(error) * 8.0E-1
         speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
         reward = speed_reward + error_reward
+        orientation, rotation = float(action[0][0]), float(action[0][1])
+        reward = reward * 0.9 + 0.1 * (abs(orientation) / AGV.MAX_ORIENTATION)
 
 
         # Record
-        orientation, rotation = float(action[0][0]), float(action[0][1])
         self.action_r_record.append(orientation)
         self.action_s_record.append(rotation)
         self.speed_reward_record.append(-speed_reward)
@@ -215,7 +225,7 @@ class PathFollowingV3(gym.Env):
         self.wheel_x_record.append(wheelx)
         self.wheel_y_record.append(wheely)
         self.speed_record.append(speed)
-        self.error_record = [error]
+        self.error_record.append(error)
 
         # actionDiff = action - self.lastAction
         # self.lastAction = action
