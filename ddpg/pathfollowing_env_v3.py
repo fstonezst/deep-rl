@@ -209,7 +209,7 @@ class PathFollowingV3(gym.Env):
         speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
         reward = speed_reward + error_reward
         orientation, rotation = float(action[0][0]), float(action[0][1])
-        reward = reward * 0.95 + 0.05 * (abs(orientation) / AGV.MAX_ORIENTATION)
+        reward = reward * 0.999 + 0.001 * (abs(orientation) / AGV.MAX_ORIENTATION)
 
 
         # Record
