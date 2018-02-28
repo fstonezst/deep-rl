@@ -12,7 +12,8 @@ class AGV:
     def __init__(self, wheelPos=[10,0], theta=np.pi, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
                  l=[1.22, 0.268, 0.268]):
         self.wheelPos = wheelPos
-        self.uk = np.matrix([[0.0], [0.0]])
+        # self.uk = np.matrix([[0.0], [0.0]])
+        self.uk = np.matrix([[1.0], [0.0]])
         self.fai = np.matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 0]])
         self.D = np.matrix([0, 0, 1]).T
         self.L = np.matrix([[0, 0, 0], [0, 0, l[0]], [0, -1 / l[0], 0]])

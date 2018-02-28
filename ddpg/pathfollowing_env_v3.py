@@ -101,8 +101,10 @@ class PathFollowingV3(gym.Env):
         # action bounded
         min_orientation, max_orientation = -AGV.MAX_ORIENTATION, AGV.MAX_ORIENTATION
         min_rotation, max_rotation = -AGV.MAX_ROTATION, AGV.MAX_ROTATION
-        self.action_min = np.array([min_orientation, min_rotation])
-        self.action_max = np.array([max_orientation, max_rotation])
+        # self.action_min = np.array([min_orientation, min_rotation])
+        # self.action_max = np.array([max_orientation, max_rotation])
+        self.action_min = np.array([min_orientation])
+        self.action_max = np.array([max_orientation])
 
         # observation bounded
         B_max, B_min = PathFollowingV3.max_angle, PathFollowingV3.min_angle
@@ -136,6 +138,8 @@ class PathFollowingV3(gym.Env):
         self.time += 1
 
         # control
+        orientation = float(action[0][0])
+        action[0].append(0)
         self.car.controlInput(np.matrix(action))
 
         # AGV new state
