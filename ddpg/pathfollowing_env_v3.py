@@ -76,9 +76,9 @@ class PathFollowingV3(gym.Env):
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=2, isRandom=False):
+    def __init__(self, hislen=3, isRandom=False):
         self.random_model = isRandom
-        self.max_time = 20
+        self.max_time = 300
         self.viewer = None
         self.historyLength = hislen
 
@@ -215,7 +215,7 @@ class PathFollowingV3(gym.Env):
         reward = speed_reward + error_reward
         orientation, rotation = float(action[0][0]), float(action[0][1])
         # reward = reward * 0.95 + 0.05 * (abs(orientation) / AGV.MAX_ORIENTATION)
-        reward = reward * 0.9995 + 0.0005 * (abs(orientation) / AGV.MAX_ORIENTATION)
+        reward = reward * 0.999 + 0.001 * (abs(orientation) / AGV.MAX_ORIENTATION)
 
 
         # Record

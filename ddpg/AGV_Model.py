@@ -13,7 +13,7 @@ class AGV:
                  l=[1.22, 0.268, 0.268]):
         self.wheelPos = wheelPos
         # self.uk = np.matrix([[0.0], [0.0]])
-        self.uk = np.matrix([[16.0], [0.0]])
+        self.uk = np.matrix([[1.0], [0.0]])
         self.fai = np.matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 0]])
         self.D = np.matrix([0, 0, 1]).T
         self.L = np.matrix([[0, 0, 0], [0, 0, l[0]], [0, -1 / l[0], 0]])
