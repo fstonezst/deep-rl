@@ -7,7 +7,7 @@ from matplotlib.patches import Circle
 
 class Drawer(object):
 
-    def __init__(self, path, lineColor=['g-', 'b-', 'r-', 'y-']):
+    def __init__(self, path, lineColor=['-', 'b-', 'r-', 'y-']):
         self.lineColor = lineColor
         self.path = path
 
@@ -203,15 +203,14 @@ class Drawer(object):
 if __name__=="__main__":
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/final_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
-    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [1344, 1452, 1902]
-    path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490, 233, 373]
+    path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [722]
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490] #, 233, 373]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
 
     draw = Drawer(path)
     # draw.showLoss()
     # draw.showReward()
     # draw.showSpeed(modelNo)
-    draw.showError(modelNo)
+    # draw.showError(modelNo)
     # draw.showPath(modelNo)
-    # draw.showRotation(modelNo)
-    # draw.showOrientation(modelNo)
+    draw.showRotation(modelNo)
