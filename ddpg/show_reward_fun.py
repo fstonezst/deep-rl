@@ -4,11 +4,12 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 def error_fun(error):
-    error_reward = np.square(error) * 8.0E-1
+    # error_reward = np.square(error) * 8.0E-1
+    error_reward = np.square(error) / np.square(0.5)
 
     #导函数
     derivative = 1.6E0 * error
-    return error_reward * 0.9995
+    return error_reward * 0.99
     # return derivative
     # return 0
 
@@ -21,11 +22,11 @@ def speed_fun(speed):
     # return derivative
     # return 0
 def out_fun(out):
-    return (out / 0.5) * 0.0005
+    return (out / 0.5) * 0.01
 
 
 # step, start, end = 0.01, 0.0, 0.1  #PathFollowingV2.error_bound
-step, start, end = 0.005, 0.0, 0.05  #PathFollowingV2.error_bound
+step, start, end = 0.01, 0.0, 0.1  #PathFollowingV2.error_bound
 X = np.arange(start, end, step)
 step, start, end = 0.05, 0, 0.5         #AGV.MAX_SPEED
 Y = np.arange(start, end, step)
@@ -33,7 +34,7 @@ X, Y = np.meshgrid(X, Y)
 
 # total reward
 # Z = np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y))
-Z = np.matrix(map(error_fun, X))+ np.matrix(map(out_fun, Y))
+Z = np.matrix(map(error_fun, X)) + np.matrix(map(out_fun, Y))
 #speed reward proportion
 # Z = np.matrix(map(speed_fun, Y))/(np.matrix(map(error_fun, X)) + np.matrix(map(speed_fun, Y)))
 # diff

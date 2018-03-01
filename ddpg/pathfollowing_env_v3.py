@@ -13,11 +13,11 @@ class PathFollowingV3(gym.Env):
         'video.frames_per_second': 30
     }
 
-    max_speed, min_speed = AGV.MAX_SPEED, 0
-    max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
-    error_bound = 1
+    # max_speed, min_speed = AGV.MAX_SPEED, 0
+    # max_angle, min_angle = AGV.MAX_ANGLE, AGV.MIN_ANGLE
+    # error_bound = 1
     # history_length = 4
-    leftOrRightTime = 0
+    # leftOrRightTime = 0
 
     def _reset(self):
         # random = self.np_random
@@ -56,13 +56,14 @@ class PathFollowingV3(gym.Env):
 
         # self.lastAction = 0
 
-        self.error_record = []
+        self.error_record, self.beta_record = [], []
 
         self.center_x_record, self.center_y_record = [], []
         self.wheel_x_record, self.wheel_y_record = [], []
         self.action_r_record, self.action_s_record = [], []
         self.speed_record = []
-        self.error_reward_record, self.speed_reward_record = [], []
+        # self.error_reward_record, self.speed_reward_record = [], []
+        self.error_reward_record = []
 
         self.error_buffer = [0] * history_len
         self.beta_buffer = [0] * history_len
@@ -76,8 +77,9 @@ class PathFollowingV3(gym.Env):
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=3, isRandom=False):
+    def __init__(self, hislen=3, error_bound=0.5, isRandom=False):
         self.random_model = isRandom
+        self.error_bound = error_bound
         self.max_time = 300
         self.viewer = None
         self.historyLength = hislen
@@ -93,8 +95,9 @@ class PathFollowingV3(gym.Env):
         self.wheel_x_record, self.wheel_y_record = [], []
         self.action_r_record, self.action_s_record = [], []
         self.speed_record = []
-        self.error_reward_record, self.speed_reward_record = [], []
-        self.error_record = []
+        # self.error_reward_record, self.speed_reward_record = [], []
+        self.error_reward_record = []
+        self.error_record, self.beta_record = [], []
 
         # self.buffer_size = 10
 
@@ -107,9 +110,9 @@ class PathFollowingV3(gym.Env):
         self.action_max = np.array([max_orientation])
 
         # observation bounded
-        B_max, B_min = PathFollowingV3.max_angle, PathFollowingV3.min_angle
-        Error_max, Error_min = PathFollowingV3.error_bound, -PathFollowingV3.error_bound
-        speed_min, speed_max = PathFollowingV3.min_speed, PathFollowingV3.max_speed
+        B_max, B_min = AGV.MAX_ANGLE, AGV.MIN_ANGLE
+        Error_max, Error_min = self.error_bound, -self.error_bound
+        speed_min, speed_max = 0, AGV.MAX_SPEED
 
         self.observation_min = np.array([B_min, Error_min, speed_min])
         self.observation_max = np.array([B_max, Error_max, speed_max])
@@ -210,18 +213,21 @@ class PathFollowingV3(gym.Env):
         self.state = np.array(st)
 
         # Reward
-        error_reward = np.square(error) * 8.0E-1
-        speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
-        reward = speed_reward + error_reward
+        # error_reward = np.square(error) * 8.0E-1
+        # speed_reward = 6.6E-3 / np.square(speed + 8.0E-2)   # 待测试
+        # reward = speed_reward + error_reward
         orientation, rotation = float(action[0][0]), float(action[0][1])
         # reward = reward * 0.95 + 0.05 * (abs(orientation) / AGV.MAX_ORIENTATION)
-        reward = reward * 0.999 + 0.001 * (abs(orientation) / AGV.MAX_ORIENTATION)
+        error_reward = np.square(error) / np.square(self.error_bound)
+        out_reward = abs(orientation) / AGV.MAX_ORIENTATION
+        w = 0.99
+        reward = error_reward * w + (1 - w) * out_reward
 
 
         # Record
         self.action_r_record.append(orientation)
         self.action_s_record.append(rotation)
-        self.speed_reward_record.append(-speed_reward)
+        # self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
         self.totalError += abs(error)
         if abs(error) > self.maxError:
@@ -232,6 +238,7 @@ class PathFollowingV3(gym.Env):
         self.wheel_y_record.append(wheely)
         self.speed_record.append(speed)
         self.error_record.append(error)
+        self.beta_record.append(beta)
 
         # actionDiff = action - self.lastAction
         # self.lastAction = action
@@ -239,7 +246,7 @@ class PathFollowingV3(gym.Env):
         # diff1, diff2 = actionDiff[0], actionDiff[1]
 
 
-        done = True if self.time > self.max_time or abs(error) > PathFollowingV3.error_bound else False
+        done = True if self.time > self.max_time or abs(error) > self.error_bound else False
         # done = True if wheely >= yabound or abs(error) > PathFollowingV3.error_bound else False
 
         if done:
@@ -250,6 +257,8 @@ class PathFollowingV3(gym.Env):
                                                          "wheel": [self.wheel_x_record, self.wheel_y_record],
                                                          "speed": self.speed_record,
                                                          "error": self.error_record,
-                                                         "reward": [self.speed_reward_record, self.error_reward_record]}
+                                                         "beta": self.beta_record,
+                                                         # "reward": [self.speed_reward_record, self.error_reward_record]}
+                                                        "reward": [self.error_reward_record]}
 
         return np.array(self.state), -reward, done, {"result": []}

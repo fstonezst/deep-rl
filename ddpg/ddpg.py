@@ -44,10 +44,10 @@ def build_summaries():
     tf.summary.scalar("error", error)
     train_g = tf.Variable(0.)
     tf.summary.scalar("gradient", train_g)
-    train_g2 = tf.Variable(0.)
-    tf.summary.scalar("gradient2", train_g2)
+    total_reward = tf.Variable(0.)
+    tf.summary.scalar("total_reward", total_reward)
 
-    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, train_g2]
+    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, total_reward]
     summary_ops = tf.summary.merge_all()
     # summary_ops = tf.summary.merge_all_summaries()
 
@@ -80,6 +80,7 @@ def train(sess, env, args, actor, critic):
     curr_model_no = 0
     oriNoiseRate, rotNoiseRate = 1, 0.8
     last_loss, last_times, lastReward, last_error = 4.0E8, 0, -1, 4
+    last_total_reward = -1
     isConvergence = True
 
     for i in range(int(args['max_episodes'])):
@@ -92,7 +93,6 @@ def train(sess, env, args, actor, critic):
         ep_ave_max_q = 0
         total_loss = 0
         total_gradient = 0
-        total_gradient2 = 0
 
 
         # DELTA  The rate of change (time)
@@ -106,7 +106,7 @@ def train(sess, env, args, actor, critic):
 
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.005 or last_error >= 0.06:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.006 or last_error >= 0.05:
            isConvergence = False
            count = 10
            # if last_error <= 0.1:
@@ -198,7 +198,6 @@ def train(sess, env, args, actor, critic):
                     actor.train(s_batch, grads[0])
 
                     aGrads1 = map(lambda x:x[0],grads[0])
-                    # aGrads2 = map(lambda x:x[1],grads[0])
 
                 if np.amax(aGrads1) is not None:
                     total_gradient += np.amax(aGrads1)
@@ -219,13 +218,12 @@ def train(sess, env, args, actor, critic):
                 avgError = info.get("avgError")
 
                 summary_str = sess.run(summary_ops, feed_dict={
-                    # summary_vars[0]: ep_reward ,
                     summary_vars[0]: ep_reward / float(j),
                     summary_vars[1]: ep_ave_max_q / float(j),
                     summary_vars[2]: total_loss / float(j),
                     summary_vars[3]: avgError,
                     summary_vars[4]: total_gradient / float(j),
-                    summary_vars[5]: total_gradient2 / float(j)
+                    summary_vars[5]: ep_reward
                 })
 
                 writer.add_summary(summary_str, i)
@@ -260,16 +258,17 @@ def train(sess, env, args, actor, critic):
                             for x in error_record:
                                 csv_writer.writerow([x])
 
-                if j > 0 and i % 100 == 0:
+                if (j > 0 and i % 100 == 0) or (isConvergence and count == 1):
                     if not isConvergence:
                         print max(total_noise0), min(total_noise0), (sum(total_noise0) / float(j))
                         # print max(total_noise1), min(total_noise1), (sum(total_noise1) / float(j))
                     print(
                         'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
-                           int(ep_reward) / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
+                           ep_reward / float(j), i, totalTime, max(action_r), min(action_r), max(action_s), min(action_s), avgError, sum(speed)/float(j), max(speed)))
                 last_loss = total_loss / float(j)
                 last_error = avgError
-                lastReward = int(ep_reward) / float(j)
+                lastReward = ep_reward / float(j)
+                last_total_reward = ep_reward
                 last_times = j
                 break
     if not isConvergence:
@@ -302,7 +301,7 @@ def predictWork(sess, model, env, args, actor):
         wheelx, wheely = info.get("wheel")[0], info.get("wheel")[1]
         action_r, action_s = info.get("action")[0], info.get("action")[1]
         speed = info.get("speed")
-        error_record = info.get("error")
+        error_record, beta_record = info.get("error"), info.get("beta")
 
         # no = str(i)
 
@@ -329,6 +328,11 @@ def predictWork(sess, model, env, args, actor):
         with open('speed'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
             for x in speed:
+                csv_writer.writerow([x])
+
+        with open('beta'+no+'.csv','wb') as f:
+            csv_writer = csv.writer(f)
+            for x in beta_record:
                 csv_writer.writerow([x])
 
         if len > 0 and i % 1000 == 0:

@@ -7,9 +7,34 @@ from matplotlib.patches import Circle
 
 class Drawer(object):
 
-    def __init__(self, path, lineColor=['-', 'b-', 'r-', 'y-']):
+    def __init__(self, path, lineColor=['-o', 'r-', 'g-', 'y-']):
         self.lineColor = lineColor
         self.path = path
+
+    def showBeta(self, idlist):
+        beta_value = []
+        if not isinstance(idlist, list):
+            idlist = [idlist]
+            idlist = [idlist]
+
+        for i in idlist:
+            with open(self.path+'beta'+str(i)+'.csv', 'rb') as f:
+                read = csv.reader(f)
+                temp = []
+                for line in read:
+                    temp.append(line[0])
+                beta_value.append(temp)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for i, speed in enumerate(beta_value):
+            mylabel = 'epoch '+str(idlist[i])
+            ax.plot(speed, self.lineColor[i], label=mylabel, lw=1)
+        ax.grid(True)
+        ax.set_xlabel("time(s)")
+        ax.set_ylabel("beta(m)")
+        ax.legend(loc='best')
+        plt.show()
 
     def showSpeed(self, idlist):
         speed_value = []
@@ -203,7 +228,7 @@ class Drawer(object):
 if __name__=="__main__":
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/final_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
-    path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [722]
+    path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [436]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490] #, 233, 373]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
 
@@ -213,4 +238,5 @@ if __name__=="__main__":
     # draw.showSpeed(modelNo)
     # draw.showError(modelNo)
     # draw.showPath(modelNo)
-    draw.showRotation(modelNo)
+    draw.showBeta(modelNo)
+    # draw.showRotation(modelNo)
