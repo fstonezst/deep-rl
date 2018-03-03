@@ -109,10 +109,10 @@ def train(sess, env, args, actor, critic):
         if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.006 or last_error >= 0.05:
            isConvergence = False
            count = 10
-           # if last_error <= 0.1:
-           # if (last_error < 0.15 and i > (curr_model_no + 30)) or last_error <= 0.1:
+           # if last_error <= 0.1 and i > (curr_model_no + 30):
            #     curr_model_no = i
-               # saver.save(sess, 'model_'+str(i))
+           #     saver.save(sess, 'model_'+str(i))
+           #     print totalTime
         else:
             count -= 1
             if count == 0:
