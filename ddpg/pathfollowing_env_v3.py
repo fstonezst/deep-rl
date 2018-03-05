@@ -26,9 +26,11 @@ class PathFollowingV3(gym.Env):
             wheelx, wheely = random.randint(-3, 3) * 0.1 + 10, 0
             theta = random.randint(-35, 35) * 0.01 + np.pi
         else:
-            wheelx, wheely = 10.1, 0
+            # wheelx, wheely = random.randint(-10, 10) * 0.01 + 10, 0
+            # theta = random.randint(-20, 20) * 0.01 + np.pi
+            wheelx, wheely = 10, 0
             theta = np.pi
-        self.car = AGV(wheelPos=[wheelx, wheely], theta=theta)
+        self.car = AGV(wheelPos=[wheelx, wheely], theta=theta, Ip1=self.Ip1)
         self.totalError = 0
         self.maxError = 0
         self.time = 0
@@ -77,12 +79,13 @@ class PathFollowingV3(gym.Env):
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=3, error_bound=0.5, isRandom=False):
+    def __init__(self, hislen=3, error_bound=0.5, isRandom=False, Ip1 = 10):
         self.random_model = isRandom
         self.error_bound = error_bound
         self.max_time = 300
         self.viewer = None
         self.historyLength = hislen
+        self.Ip1 = Ip1
 
         # self.car = AGV()
         self.totalError = 0
@@ -167,38 +170,64 @@ class PathFollowingV3(gym.Env):
         firstArcx, firstArcy = self.firstArcx, self.firstArcy
         secondArcx, secondArcy = self.secondArcx, self.secondArcy
 
+        refx, refy = wheelx, wheely
+        record_x, record_y = curcarx, curcary
+        # refx, refy = curcarx, curcary
+
         # 左正右负
         if left:
-            if wheely <= firstArcy:
+            if refy <= firstArcy:
                 # first line
-                error = wheelx - startx
-            elif wheely >= secondArcy:
+                referror = refx - startx
+                record_error = record_x - startx
+            elif refy >= secondArcy:
                 # final line
-                error = wheelx - (secondArcx - secondArcR)
-            elif wheelx >= firstArcx:
+                referror = refx - (secondArcx - secondArcR)
+                record_error = record_x - (secondArcx - secondArcR)
+            elif refx >= firstArcx:
                 # first arc ni shi zhen
-                error = np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy)) - firstArcR
-            elif wheelx <= secondArcx:
+                referror = np.sqrt(np.square(refx - firstArcx) + np.square(refy - firstArcy)) - firstArcR
+                record_error = np.sqrt(np.square(record_x - firstArcx) + np.square(record_y - firstArcy)) - firstArcR
+            elif refx <= secondArcx:
                 # second arc shun shi zhen
-                error = secondArcR - np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy))
+                referror = secondArcR - np.sqrt(np.square(refx - secondArcx) + np.square(refy - secondArcy))
+                record_error = secondArcR - np.sqrt(np.square(record_x - secondArcx) + np.square(record_y - secondArcy))
             else:
                 # mid line
-                error = wheely - (firstArcy + firstArcR)
+                referror = refy - (firstArcy + firstArcR)
+                record_error = record_y - (firstArcy + firstArcR)
         else:
-            if wheely <= firstArcy:
-                error = wheelx - startx
-            elif wheely >= secondArcy:
-                error = wheelx - (secondArcx + secondArcR)
-            elif wheelx <= firstArcx:
+            if refy <= firstArcy:
+                referror = refx - startx
+            elif refy >= secondArcy:
+                referror = refx - (secondArcx + secondArcR)
+            elif refx <= firstArcx:
                 # shun shi zhen
-                error =  firstArcR - np.sqrt(np.square(wheelx - firstArcx) + np.square(wheely - firstArcy))
-            elif wheelx >= secondArcx:
+                referror =  firstArcR - np.sqrt(np.square(refx - firstArcx) + np.square(refy - firstArcy))
+            elif refx >= secondArcx:
                 # ni shi zhen
-                error = np.sqrt(np.square(wheelx - secondArcx) + np.square(wheely - secondArcy)) - secondArcR
+                referror = np.sqrt(np.square(refx - secondArcx) + np.square(refy - secondArcy)) - secondArcR
             else:
-                error = wheely - (firstArcy + firstArcR)
+                referror = refy - (firstArcy + firstArcR)
 
-        self.error_buffer.append(error)
+        if left:
+            if record_y <= firstArcy:
+                # first line
+                record_error = record_x - startx
+            elif record_y >= secondArcy:
+                # final line
+                record_error = record_x - (secondArcx - secondArcR)
+            elif record_x >= firstArcx:
+                # first arc ni shi zhen
+                record_error = np.sqrt(np.square(record_x - firstArcx) + np.square(record_y - firstArcy)) - firstArcR
+            elif record_x <= secondArcx:
+                # second arc shun shi zhen
+                record_error = secondArcR - np.sqrt(np.square(record_x - secondArcx) + np.square(record_y - secondArcy))
+            else:
+                # mid line
+                record_error = record_y - (firstArcy + firstArcR)
+
+        self.error_buffer.append(referror)
 
 
         if len(self.error_buffer) > history_len:
@@ -218,7 +247,7 @@ class PathFollowingV3(gym.Env):
         # reward = speed_reward + error_reward
         orientation, rotation = float(action[0][0]), float(action[0][1])
         # reward = reward * 0.95 + 0.05 * (abs(orientation) / AGV.MAX_ORIENTATION)
-        error_reward = np.square(error) / np.square(self.error_bound)
+        error_reward = np.square(referror) / np.square(self.error_bound)
         out_reward = abs(orientation) / AGV.MAX_ORIENTATION
         w = 0.99
         reward = error_reward * w + (1 - w) * out_reward
@@ -229,15 +258,16 @@ class PathFollowingV3(gym.Env):
         self.action_s_record.append(rotation)
         # self.speed_reward_record.append(-speed_reward)
         self.error_reward_record.append(-error_reward)
-        self.totalError += abs(error)
-        if abs(error) > self.maxError:
-            self.maxError = abs(error)
+        self.totalError += abs(referror)
+        if abs(referror) > self.maxError:
+            self.maxError = abs(referror)
         self.center_x_record.append(curcarx)
         self.center_y_record.append(curcary)
         self.wheel_x_record.append(wheelx)
         self.wheel_y_record.append(wheely)
         self.speed_record.append(speed)
-        self.error_record.append(error)
+        # self.error_record.append(referror)
+        self.error_record.append(record_error)
         self.beta_record.append(beta)
 
         # actionDiff = action - self.lastAction
@@ -246,7 +276,7 @@ class PathFollowingV3(gym.Env):
         # diff1, diff2 = actionDiff[0], actionDiff[1]
 
 
-        done = True if self.time > self.max_time or abs(error) > self.error_bound else False
+        done = True if self.time > self.max_time or abs(referror) > self.error_bound else False
         # done = True if wheely >= yabound or abs(error) > PathFollowingV3.error_bound else False
 
         if done:
