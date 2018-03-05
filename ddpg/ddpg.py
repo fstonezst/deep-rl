@@ -116,13 +116,15 @@ def train(sess, env, args, actor, critic):
         else:
             count -= 1
             if count == 0:
-                #     env.setCarMess(500 + random.randint(100, 500))
-                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [18, 1, 1], [15, 1.8, 1.8], 17
-                #     env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20, 2.3, 2.3], 10
-                #     print "===================="+str(env.car.mess)+"================="
-                #     count = 10
-                saver.save(sess,'model_'+str(i))
-                break
+                # env.Ip1 += (random.randint(10, 20) * random.choice([1, -1]))
+                env.Ip1 -= 10
+                # if env.Ip1 <= 0:
+                #     env.Ip1 = random.randint(20, 30)
+                s = env.reset()
+                print "===================="+str(i)+":"+str(env.car.Ip1)+"================="
+                if env.Ip1 <= 0:
+                    saver.save(sess,'model_'+str(i))
+                    break
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -240,18 +242,18 @@ def train(sess, env, args, actor, critic):
 
                         with open('movePath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
-                            for x,y in zip(moveStorex,moveStorey):
-                                csv_writer.writerow([x,y])
+                            for x,y in zip(moveStorex, moveStorey):
+                                csv_writer.writerow([x, y])
 
                         with open('wheelPath'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(wheelx,wheely):
-                                csv_writer.writerow([x,y])
+                                csv_writer.writerow([x, y])
 
                         with open('action'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
                             for x,y in zip(action_r,action_s):
-                                csv_writer.writerow([x,y])
+                                csv_writer.writerow([x, y])
 
                         with open('error'+str(i)+'.csv','wb') as f:
                             csv_writer = csv.writer(f)
