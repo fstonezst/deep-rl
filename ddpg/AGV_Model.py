@@ -7,7 +7,8 @@ class AGV:
     MAX_SPEED = 6 * np.pi
     # MAX_ANGLE, MIN_ANGLE = np.pi * (170.0 / 180.0), np.pi * (10.0 / 180.0)
     MAX_ANGLE, MIN_ANGLE = np.pi * (130.0 / 180.0), np.pi * (50.0 / 180.0)
-    MAX_ORIENTATION, MAX_ROTATION = 3, 300
+    # MAX_ORIENTATION, MAX_ROTATION = 3, 300
+    MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
     count = 0
 
     def __init__(self, wheelPos=[10,0], theta=np.pi, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
@@ -15,8 +16,8 @@ class AGV:
     # def __init__(self, wheelPos=[10,0], theta=np.pi, mess=1000, w_mess=[20, 2, 2], h=0.6, rs=0.225, rf=0.08, I0=300, Ip1=20, Ir=[1, 0.05, 0.05],
     #              l=[1.22, 0.268, 0.268]):
         self.wheelPos = wheelPos
-        # self.uk = np.matrix([[0.0], [0.0]])
-        self.uk = np.matrix([[1.6], [0.0]])
+        # self.uk = np.matrix([[1.6], [0.0]])
+        self.uk = np.matrix([[1.0], [0.0]])
         self.fai = np.matrix([[0, 1, 0], [-1, 0, 0], [0, 0, 0]])
         self.D = np.matrix([0, 0, 1]).T
         self.L = np.matrix([[0, 0, 0], [0, 0, l[0]], [0, -1 / l[0], 0]])
