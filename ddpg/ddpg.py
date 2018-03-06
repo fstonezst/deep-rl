@@ -283,7 +283,7 @@ def predictWork(sess, model, env, args, actor):
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
     no = model.split('_')[1]
-    times = 300
+    times = 330
 
     for i in range(1):
         s, info, len = env.reset(), None, 0

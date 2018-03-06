@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,7 +8,7 @@ from matplotlib.patches import Circle
 
 class Drawer(object):
 
-    def __init__(self, path, lineColor=['-o', 'r-', 'g-', 'y-']):
+    def __init__(self, path, lineColor=['-*', 'r-', 'g-', 'y-']):
         self.lineColor = lineColor
         self.path = path
 
@@ -34,6 +35,9 @@ class Drawer(object):
         ax.set_xlabel("time(s)")
         ax.set_ylabel("beta(m)")
         ax.legend(loc='best')
+        plt.xlim((0, 300))
+        plt.xticks(range(0, 330, 30),[str(i) for i in range(0, 22, 2)])
+        plt.yticks([(i/180.0) * np.pi for i in range(50,150,10)],[str(i) for i in range(50, 150, 10)])
         plt.show()
 
     def showSpeed(self, idlist):
@@ -77,12 +81,18 @@ class Drawer(object):
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         for i, error in enumerate(error_value):
-            mylabel = 'epoch '+str(idlist[i])
+            # mylabel = 'epoch '+str(idlist[i])
+            mylabel = 'DRL-PF'
             ax.plot(error, self.lineColor[i], label=mylabel, lw=1)
+            # ax.plot(error, self.lineColor[i], lw=1)
         ax.grid(True)
-        ax.set_xlabel("time(s)")
-        ax.set_ylabel("error(m)")
-        ax.legend(loc='best')
+        ax.set_xlabel("Times(s)")
+        ax.set_ylabel("Error(m)")
+        # ax.legend(loc='best')
+        plt.ylim((-0.08, 0.12))
+        plt.xlim((0, 300))
+        plt.xticks(range(0, 330, 30),[str(i) for i in range(0, 22, 2)])
+        plt.yticks([i * 0.01 for i in range(-8, 14, 2)])
         plt.show()
 
     def showOrientation(self, idlist):
@@ -108,6 +118,8 @@ class Drawer(object):
         ax.set_xlabel("time(s)")
         ax.set_ylabel("orientation torques(N)")
         ax.legend(loc='best')
+        plt.xlim((0, 300))
+        plt.xticks(range(0, 330, 30),[str(i) for i in range(0, 22, 2)])
         plt.show()
 
     def showRotation(self,idlist):
@@ -133,11 +145,13 @@ class Drawer(object):
         ax.set_xlabel("time(s)")
         ax.set_ylabel("rotation torques(N)")
         ax.legend(loc='best')
+        plt.xlim((0, 300))
+        plt.xticks(range(0, 330, 30),[str(i) for i in range(0, 22, 2)])
         plt.show()
 
     def drawArc(self,p,r,s,e):
         x,y = p
-        curr, step, res_x, res_y = s, 1, [], []
+        curr, step, res_x, res_y = s, 0.017, [], []
 
         while curr <= e:
             res_x.append(x + r * np.cos(curr))
@@ -154,6 +168,7 @@ class Drawer(object):
 
         for i in idlist:
             with open(self.path+'wheelPath'+str(i)+'.csv','rb') as f:
+            # with open(self.path+'movePath'+str(i)+'.csv','rb') as f:
                 read = csv.reader(f)
                 wheelx, wheely = [], []
                 for line in read:
@@ -163,16 +178,19 @@ class Drawer(object):
 
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        # arc1 = list(self.drawArc((4,4),6,0, 0.5*np.pi))
-        # arc2 = list(self.drawArc((0,14),4,np.pi, np.pi*1.5))
-        # ax.plot(arc1[0],arc1[1], '-', lw=2)
-        # ax.plot(arc2[0],arc2[1], '-', lw=2)
-        # line1 = [(10, 0), (10, 4)]
-        # line2 = [(4, 10), (0, 10)]
-        # (line1_xs, line1_ys) = zip(*line1)
-        # (line2_xs, line2_ys) = zip(*line2)
-        # ax.add_line(Line2D(line1_xs, line1_ys, linewidth=2))
-        # ax.add_line(Line2D(line2_xs, line2_ys, linewidth=2))
+        y = np.linspace(0, 4, 100)
+        x = [10] * len(y)
+        ax.plot(x,y,'k-', lw=1)
+        x = np.linspace(4,0,100)
+        y = [10] * len(x)
+        ax.plot(x,y, 'k-', lw=1)
+        y = np.linspace(14, 26, 100)
+        x = [-4] * len(y)
+        ax.plot(x,y, 'k-', lw=2)
+        arc1 = list(self.drawArc((4,4),6,0, 0.5*np.pi))
+        arc2 = list(self.drawArc((0,14),4,np.pi, np.pi*1.5))
+        ax.plot(arc1[0],arc1[1], 'k-', lw=1)
+        ax.plot(arc2[0],arc2[1], 'k-', lw=1)
 
         for i, error in enumerate(path_value):
             mylabel = 'epoch '+str(idlist[i])
@@ -183,6 +201,8 @@ class Drawer(object):
         ax.set_xlabel("X(m)")
         ax.set_ylabel("Y(m)")
         ax.legend(loc='best')
+        plt.yticks(range(0, 22, 2))
+        plt.ylim((0,20))
         plt.show()
 
     def showLoss(self, fileName='loss.csv'):
