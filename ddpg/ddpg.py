@@ -109,22 +109,19 @@ def train(sess, env, args, actor, critic):
         if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.006 or last_error >= 0.05:
            isConvergence = False
            count = 10
-           # if last_error <= 0.1 and i > (curr_model_no + 30):
-           #     curr_model_no = i
-           #     saver.save(sess, 'model_'+str(i))
-           #     print totalTime
+           if last_error <= 0.07 and i > (curr_model_no + 30):
+               curr_model_no = i
+               saver.save(sess, 'model_'+str(i))
+               print totalTime
         else:
             count -= 1
             if count == 0:
-                # env.Ip1 += (random.randint(10, 20) * random.choice([1, -1]))
-                env.Ip1 -= 10
-                # if env.Ip1 <= 0:
-                #     env.Ip1 = random.randint(20, 30)
-                s = env.reset()
-                print "===================="+str(i)+":"+str(env.car.Ip1)+"================="
-                if env.Ip1 <= 0:
-                    saver.save(sess,'model_'+str(i))
-                    break
+                # env.car.Ip1 += random.randint(-10, 10)
+                # if env.car.Ip1 <= 0:
+                #     env.car.Ip1 = random.randint(0, 20)
+                # print "===================="+str(env.car.Ip1)+"================="
+                saver.save(sess,'model_'+str(i))
+                break
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -283,7 +280,7 @@ def predictWork(sess, model, env, args, actor):
     sess.run(tf.global_variables_initializer())
     saver.restore(sess, model)
     no = model.split('_')[1]
-    times = 330
+    times = 210
 
     for i in range(1):
         s, info, len = env.reset(), None, 0
@@ -305,7 +302,7 @@ def predictWork(sess, model, env, args, actor):
         speed = info.get("speed")
         error_record, beta_record = info.get("error"), info.get("beta")
 
-        # no = str(i)
+        no = str(1)
 
         with open('movePath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)
