@@ -251,6 +251,7 @@ class PathFollowingV3(gym.Env):
         error_reward = np.square(referror) / np.square(self.error_bound)
         out_reward = abs(orientation) / AGV.MAX_ORIENTATION
         w = 0.99
+        # w = 1
         reward = error_reward * w + (1 - w) * out_reward
 
 
@@ -267,8 +268,8 @@ class PathFollowingV3(gym.Env):
         self.wheel_x_record.append(wheelx)
         self.wheel_y_record.append(wheely)
         self.speed_record.append(speed)
-        # self.error_record.append(referror)
-        self.error_record.append(record_error)
+        self.error_record.append(-referror)
+        # self.error_record.append(record_error)
         self.beta_record.append(beta)
 
         # actionDiff = action - self.lastAction

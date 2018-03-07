@@ -58,16 +58,16 @@ class CriticNetwork(object):
 
         # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        inputLayer = tflearn.layers.normalization.batch_normalization(inputs)
+        inputLayer = tflearn.layers.normalization.batch_normalization(inputs, name='critic_input_bn')
 
         # action input
         action = tflearn.input_data(shape=[None, self.a_dim])
 
         # first layer for state
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init)
+        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='critic_first_layer')
         # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2)
-        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.layers.normalization.batch_normalization(net, name='critic_first_bn')
         net = tflearn.activation(net,'relu')
 
         # Add the action tensor in the 2nd hidden layer
@@ -75,8 +75,10 @@ class CriticNetwork(object):
         t1, t2 = tflearn.activations.linear(net), tflearn.activations.linear(action)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1+self.a_dim), maxval=1/np.sqrt(N_HIDDEN_1+self.a_dim))
-        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init)
-        # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2)
+        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init, name='critic_second_layer')
+        # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2, name='critic_second_layer')
+        # net = tflearn.layers.normalization.batch_normalization(net, name='critic_second_bn')
+        # net = tflearn.activation(net,'relu')
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
