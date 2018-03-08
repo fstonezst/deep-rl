@@ -28,8 +28,8 @@ class PathFollowingV3(gym.Env):
         else:
             # wheelx, wheely = random.randint(-10, 10) * 0.01 + 10, 0
             # theta = random.randint(-20, 20) * 0.01 + np.pi
-            # wheelx, wheely = 10, 0
-            wheelx, wheely = 9.9, 0
+            wheelx, wheely = 10, 0
+            # wheelx, wheely = 9.9, 0
             theta = np.pi
         self.car = AGV(wheelPos=[wheelx, wheely], theta=theta, Ip1=self.Ip1)
         self.totalError = 0
