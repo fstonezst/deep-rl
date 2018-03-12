@@ -40,22 +40,24 @@ class OrnsteinUhlenbeckNoise(object):
 
 # # Noise parameters - Ornstein Uhlenbeck
 # import matplotlib.pyplot as plt
+# import random
 # DELTA = 0.1 # The rate of change (time)
 # SIGMA = 5 # Volatility of the stochastic processes
 # OU_A = 3. # The rate of mean reversion
 # OU_MU = 0. # The long run average interest rate
 #
 # ou_level = 0.
-# noise = Noise(DELTA, SIGMA, OU_A, OU_MU)
+# noise = OrnsteinUhlenbeckNoise(DELTA, SIGMA, OU_A, OU_MU)
 # record = []
 #
 # for _ in range(100):
 #     ou_level = noise.ornstein_uhlenbeck_level(ou_level)
 #     record.append(ou_level)
-#
+# rand = [random.randint(-5, 5) for _ in range(100)]
 # fig = plt.figure()
 # ax = fig.add_subplot(1,1,1)
-# ax.plot(record,'r-o')
+# ax.plot(record, 'k-', label='')
+# ax.plot(rand, 'k-.')
 # plt.show()
 #
 # # total, max, min = 0, -1, 1
