@@ -289,16 +289,17 @@ def fineTuning(sess, model, env, args, actor, critic):
     sess.run(tf.global_variables_initializer())
 
     # variables_names = [v.name for v in tf.trainable_variables()]
-    variables_names = [v for v in tf.trainable_variables() if v.name.startswith('first_critic')]
+    # variables_names = [v for v in tf.trainable_variables() if v.name.startswith('first_critic')]
     # values = sess.run(variables_names)
     # for k, v in zip(variables_names, values):
     #     print "Variable: ", k
     #     print "Shape: ", v.shape
-        # print v
+    #     print v
+    # return
 
-    saver = tf.train.Saver(var_list=variables_names)
+    # saver = tf.train.Saver(var_list=variables_names)
     # saver = tf.train.Saver(var_list=values)
-    # saver = tf.train.Saver()
+    saver = tf.train.Saver()
     saver.restore(sess, model)
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
@@ -637,7 +638,7 @@ def main(args):
             critic = CriticNetwork(sess, state_dim, action_dim,
                                    float(args['critic_lr']), float(args['tau']),
                                    float(args['gamma']),
-                                   actor.get_num_trainable_vars(), finetune=[False, True])
+                                   actor.get_num_trainable_vars(), finetune=[True, True])
 
 
 
