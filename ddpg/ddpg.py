@@ -106,7 +106,7 @@ def train(sess, env, args, actor, critic):
 
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.006 or last_error >= 0.05:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.001 or last_error >= 0.05:
            isConvergence = False
            count = 10
            # if last_error <= 0.07 and i > (curr_model_no + 30):
@@ -120,7 +120,7 @@ def train(sess, env, args, actor, critic):
                 if not Model_change:
                     saver.save(sess,'model_'+str(i))
                     print "===================="+str(i)+"================="
-                    break;
+                    break
                 else:
                     env.Ip1 += (random.randint(10, 20) * random.choice([1, -1]))
                     if env.Ip1 <= 0:
@@ -140,20 +140,16 @@ def train(sess, env, args, actor, critic):
 
             if not isConvergence:
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
-                # rotation, rotationNoise = dirOut[0][1], rotationN.ornstein_uhlenbeck_level(rotationNoise)
-                if abs(orientation) <= 0.01:
-                    orientationNoise = 0
-                while abs(orientationNoise) > abs(orientation) * oriNoiseRate:
-                    orientationNoise /= 2
-                # if abs(rotation) <= 1:
-                #     rotationNoise = 0
-                # while abs(rotationNoise) > abs(rotation) * rotNoiseRate:
-                #     rotationNoise /= 2
-                # noise = np.array([orientationNoise, rotationNoise])
+                # if abs(orientation) <= 0.01:
+                #     orientationNoise = 0
+                # while abs(orientationNoise) > abs(orientation) * oriNoiseRate:
+                #     orientationNoise /= 2
                 noise = np.array([orientationNoise])
                 total_noise0.append(orientationNoise)
-                # total_noise1.append(rotationNoise)
-                a = dirOut + noise
+                if i % 10 == 0:
+                    a = dirOut
+                else:
+                    a = dirOut + noise
             else:
                 a = dirOut
 
