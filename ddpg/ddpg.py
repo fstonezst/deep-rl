@@ -23,6 +23,7 @@ from pathfollowing_env_v3 import PathFollowingV3
 from replay_buffer import ReplayBuffer
 from Critic import CriticNetwork
 from Actor import ActorNetwork
+from autoencoder import autoencoder
 import os
 import random
 from AGV_Model import AGV
@@ -46,8 +47,12 @@ def build_summaries():
     tf.summary.scalar("gradient", train_g)
     total_reward = tf.Variable(0.)
     tf.summary.scalar("total_reward", total_reward)
+    ae_reward_loss = tf.Variable(0.)
+    tf.summary.scalar("ae_reward_loss", ae_reward_loss)
+    ae_total_loss = tf.Variable(0.)
+    tf.summary.scalar("ae_total_loss", ae_total_loss)
 
-    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, total_reward]
+    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, total_reward, ae_reward_loss, ae_total_loss]
     summary_ops = tf.summary.merge_all()
     # summary_ops = tf.summary.merge_all_summaries()
 
@@ -58,7 +63,7 @@ def build_summaries():
 #   Agent Training
 # ===========================
 
-def train(sess, env, args, actor, critic):
+def train(sess, env, args, actor, critic, ae):
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
@@ -92,6 +97,8 @@ def train(sess, env, args, actor, critic):
         ep_reward = 0
         ep_ave_max_q = 0
         total_loss = 0
+        ae_r_loss_sum = 0
+        ae_total_loss_sum = 0
         total_gradient = 0
 
 
@@ -140,10 +147,6 @@ def train(sess, env, args, actor, critic):
 
             if not isConvergence:
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
-                # if abs(orientation) <= 0.01:
-                #     orientationNoise = 0
-                # while abs(orientationNoise) > abs(orientation) * oriNoiseRate:
-                #     orientationNoise /= 2
                 noise = np.array([orientationNoise])
                 total_noise0.append(orientationNoise)
                 if i % 10 == 0:
@@ -167,15 +170,34 @@ def train(sess, env, args, actor, critic):
                 target_q = critic.predict_target(
                     s2_batch, actor.predict_target(s2_batch))
 
-                y_i = []
+                y_i, r_i = [], []
 
                 for k in range(int(args['minibatch_size'])):
                     if t_batch[k]:
                         y_i.append(r_batch[k])
                     else:
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
+                    r_i.append(r_batch[k])
 
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
+                r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
+
+                nextState = ae.encode(s2_batch)
+                ae.train(s_batch, a_batch, nextState, r_label)
+
+                ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
+                    ae.inputs: s_batch,
+                    ae.action: a_batch,
+                    ae.reward: r_label,
+                    ae.nextState: nextState
+                })
+
+                ae_total_loss = sess.run([ae.loss], feed_dict={
+                    ae.inputs: s_batch,
+                    ae.action: a_batch,
+                    ae.reward: r_label,
+                    ae.nextState: nextState
+                })
 
                 # Update the critic given the targets
                 if not isConvergence:
@@ -192,6 +214,8 @@ def train(sess, env, args, actor, critic):
 
                 ep_ave_max_q += np.amax(predicted_q_value)
                 total_loss += np.amax(loss)
+                ae_r_loss_sum += np.amax(ae_reward_loss)
+                ae_total_loss_sum += np.amax(ae_total_loss)
 
                 # Update the actor policy using the sampled gradient
                 aGrads1= None
@@ -226,7 +250,9 @@ def train(sess, env, args, actor, critic):
                     summary_vars[2]: total_loss / float(j),
                     summary_vars[3]: avgError,
                     summary_vars[4]: total_gradient / float(j),
-                    summary_vars[5]: ep_reward
+                    summary_vars[5]: ep_reward,
+                    summary_vars[6]: ae_r_loss_sum / float(j),
+                    summary_vars[7]: ae_total_loss_sum / float(j)
                 })
 
                 writer.add_summary(summary_str, i)
@@ -379,6 +405,7 @@ def main(args):
                                float(args['gamma']),
                                actor.get_num_trainable_vars())
 
+        ae = autoencoder(sess, input_dim=state_dim, h_dim=200, lr=1.0E-3,a_dim=action_dim, lambda1=10)
         if args['use_gym_monitor']:
             if not args['render_env']:
                 env = wrappers.Monitor(
@@ -387,7 +414,7 @@ def main(args):
                 env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
         if args['model'] == '':
-            train(sess, env, args, actor, critic)
+            train(sess, env, args, actor, critic, ae)
         else:
             predictWork(sess, 'model_'+str(args['model']), env, args, actor)
 
