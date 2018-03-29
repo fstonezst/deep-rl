@@ -143,7 +143,9 @@ def train(sess, env, args, actor, critic, ae):
                 env.render()
 
             # Added exploration noise
-            dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            # dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            s = np.reshape(s, (1, actor.s_dim))
+            dirOut = actor.predict(ae.encode(s))
 
             if not isConvergence:
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -166,9 +168,16 @@ def train(sess, env, args, actor, critic, ae):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
                     replay_buffer.sample_batch(int(args['minibatch_size']))
 
+
+
+
+
+                s2_batch = ae.encode(s2_batch)
                 # Calculate targets
                 target_q = critic.predict_target(
                     s2_batch, actor.predict_target(s2_batch))
+                # target_q = critic.predict_target(
+                #     ae.encode(s2_batch), actor.predict_target(ae.encode(s2_batch)))
 
                 y_i, r_i = [], []
 
@@ -182,7 +191,7 @@ def train(sess, env, args, actor, critic, ae):
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
                 r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
 
-                nextState = ae.encode(s2_batch)
+                nextState = s2_batch
                 ae.train(s_batch, a_batch, nextState, r_label)
 
                 ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
@@ -199,6 +208,7 @@ def train(sess, env, args, actor, critic, ae):
                     ae.nextState: nextState
                 })
 
+                s_batch = ae.encode(s_batch)
                 # Update the critic given the targets
                 if not isConvergence:
                     predicted_q_value, _ = critic.train(

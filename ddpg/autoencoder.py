@@ -12,7 +12,7 @@ class autoencoder:
         # self.N_HIDDEN_1 = h_dim
 
         # single layer encode
-        self.inputs, self.feature_vector = self.create_encoder(hidden_num=self.h_dim)
+        self.inputs, self.feature_vector = self.create_encoder()
 
         # single layer decode
         self.action, self.stateOut, self.rewardOut = self.create_decoder(inputLayer=self.feature_vector)
@@ -42,13 +42,13 @@ class autoencoder:
             self.nextState: nextState
         })
 
-    def encode(self, nextState):
+    def encode(self, state):
         return self.sess.run(self.feature_vector, feed_dict={
-            self.inputs: nextState
+            self.inputs: state
         })
 
-    def create_encoder(self, net_name='encoder', hidden_num=100):
-        N_HIDDEN_1 = hidden_num
+    def create_encoder(self, net_name='encoder'):
+        N_HIDDEN_1 = self.h_dim
 
         # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim], name='state_input')

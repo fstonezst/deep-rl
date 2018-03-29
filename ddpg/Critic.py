@@ -54,27 +54,29 @@ class CriticNetwork(object):
 
     def create_critic_network(self, net_name='critic'):
         times = 1
-        N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
-        # N_HIDDEN_1, N_HIDDEN_2 = 100 * times, 50 * times
+        # N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
+        N_HIDDEN_1, N_HIDDEN_2 = 200 * times, 200 * times
 
         # state input
-        inputs = tflearn.input_data(shape=[None, self.s_dim])
+        # inputs = tflearn.input_data(shape=[None, self.s_dim])
+        inputs = tflearn.input_data(shape=[None, N_HIDDEN_1])
         inputLayer = tflearn.layers.normalization.batch_normalization(inputs, name='input_'+net_name+'_bn')
 
         # action input
         action = tflearn.input_data(shape=[None, self.a_dim])
 
         # first layer for state
-        w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='first_'+net_name+'_layer')
-        tf.summary.histogram('first_'+net_name+'_layer_w', net.W)
-        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2)
-        net = tflearn.layers.normalization.batch_normalization(net, name='first_'+net_name+'_bn')
-        net = tflearn.activation(net,'relu')
+        # w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='first_'+net_name+'_layer')
+        # tf.summary.histogram('first_'+net_name+'_layer_w', net.W)
+        ## net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2)
+        # net = tflearn.layers.normalization.batch_normalization(net, name='first_'+net_name+'_bn')
+        # net = tflearn.activation(net,'relu')
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1, t2 = tflearn.activations.linear(net), tflearn.activations.linear(action)
+        # t1, t2 = tflearn.activations.linear(net), tflearn.activations.linear(action)
+        t1, t2 = tflearn.activations.linear(inputs), tflearn.activations.linear(action)
         net = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1+self.a_dim), maxval=1/np.sqrt(N_HIDDEN_1+self.a_dim))
         # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', activation='relu', weight_decay=1.0E-2, weights_init=w_init, name='critic_second_layer')

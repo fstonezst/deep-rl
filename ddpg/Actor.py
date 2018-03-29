@@ -54,21 +54,23 @@ class ActorNetwork(object):
 
     def create_actor_network(self, net_name='actor'):
         times = 1
-        N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
-        # N_HIDDEN_1, N_HIDDEN_2 = 100 * times, 50 * times
+        # N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
+        N_HIDDEN_1, N_HIDDEN_2 = 200 * times, 200 * times
 
-        inputs = tflearn.input_data(shape=[None, self.s_dim])
+        # inputs = tflearn.input_data(shape=[None, self.s_dim])
+        inputs = tflearn.input_data(shape=[None, N_HIDDEN_1])
         inputLayer = tflearn.layers.normalization.batch_normalization(inputs, name=net_name+'_input_bn')
 
-        w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
-        net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='first_'+net_name+'_layer')
-        tf.summary.histogram('first_'+net_name+'_layer_w', net.W)
-        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2)
-        net = tflearn.layers.normalization.batch_normalization(net, name='first_'+net_name+'_bn')
-        net = tflearn.activation(net,'relu')
+        # w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(self.s_dim), maxval=1/np.sqrt(self.s_dim))
+        # net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='first_'+net_name+'_layer')
+        # tf.summary.histogram('first_'+net_name+'_layer_w', net.W)
+        ## net = tflearn.fully_connected(inputLayer, N_HIDDEN_1, regularizer='L2', weight_decay=1.0E-2)
+        # net = tflearn.layers.normalization.batch_normalization(net, name='first_'+net_name+'_bn')
+        # net = tflearn.activation(net,'relu')
 
         w_init = tflearn.initializations.uniform(minval=-1/np.sqrt(N_HIDDEN_1), maxval=1/np.sqrt(N_HIDDEN_1))
-        net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='second_'+net_name+'_layer')
+        # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='second_'+net_name+'_layer')
+        net = tflearn.fully_connected(inputs, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, weights_init=w_init, name='second_'+net_name+'_layer')
         tf.summary.histogram('second_'+net_name+'_layer_w', net.W)
         # net = tflearn.fully_connected(net, N_HIDDEN_2, regularizer='L2', weight_decay=1.0E-2, )
         net = tflearn.layers.normalization.batch_normalization(net, name='second_'+net_name+'_bn')
