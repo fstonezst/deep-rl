@@ -47,8 +47,9 @@ class autoencoder:
             self.inputs: nextState
         })
 
-    def create_encoder(self, net_name='encoder', hidden_num=10):
-        N_HIDDEN_1 = hidden_num
+    def create_encoder(self, net_name='encoder', hidden_num=5):
+        N_HIDDEN_1, N_HIDDEN_2 = 512, hidden_num
+
 
         # state input
         inputs = tflearn.input_data(shape=[None, self.s_dim], name='state_input')
@@ -62,11 +63,19 @@ class autoencoder:
         net = tflearn.layers.normalization.batch_normalization(net, name='first_' + net_name + '_bn')
         net = tflearn.activation(net, 'relu')
 
+        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(N_HIDDEN_1), maxval=1 / np.sqrt(N_HIDDEN_1))
+        net = tflearn.fully_connected(net, N_HIDDEN_2,
+                                      regularizer='L2', weight_decay=1.0E-2,
+                                      weights_init=w_init, name='second_' + net_name + '_layer')
+        net = tflearn.layers.normalization.batch_normalization(net, name='second_' + net_name + '_bn')
+        net = tflearn.activation(net, 'relu')
+
+
         return inputs, net
 
     def create_decoder(self, net_name='deconder', inputLayer = None):
-        N_HIDDEN_1 = self.h_dim + self.a_dim
-        N_HIDDEN_2 = 200
+        N_HIDDEN_1, N_HIDDEN_2 = 512, self.h_dim + self.a_dim
+        input_dim = self.h_dim + self.a_dim
 
         # action input
         action = tflearn.input_data(shape=[None, self.a_dim], name='action_input')
@@ -76,20 +85,20 @@ class autoencoder:
         hideVector = tflearn.layers.merge_ops.merge([t1, t2], mode='concat')
 
         # decoder layer
-        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(N_HIDDEN_1), maxval=1 / np.sqrt(N_HIDDEN_1))
-        hideVector = tflearn.fully_connected(hideVector, N_HIDDEN_2,
+        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(input_dim), maxval=1 / np.sqrt(input_dim))
+        hideVector = tflearn.fully_connected(hideVector, N_HIDDEN_1,
                                         regularizer='L2', weight_decay=1.0E-2,
                                         weights_init=w_init, name='first_' + net_name + '_state_layer')
         hideVector = tflearn.layers.normalization.batch_normalization(hideVector, name='first_' + net_name + '_bn')
         hideVector = tflearn.activation(hideVector, 'relu')
 
-        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(N_HIDDEN_2), maxval=1 / np.sqrt(N_HIDDEN_2))
+        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(N_HIDDEN_1), maxval=1 / np.sqrt(N_HIDDEN_1))
         state = tflearn.fully_connected(hideVector, self.h_dim,
                                         regularizer='L2', weight_decay=1.0E-2,
                                         weights_init=w_init, name='out_' + net_name + '_state_layer')
         state = tflearn.activation(state, 'relu')
 
-        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(N_HIDDEN_2), maxval=1 / np.sqrt(N_HIDDEN_2))
+        w_init = tflearn.initializations.uniform(minval=-1 / np.sqrt(N_HIDDEN_1), maxval=1 / np.sqrt(N_HIDDEN_1))
         reward = tflearn.fully_connected(hideVector, 1, regularizer='L2',
                                          weight_decay=1.0E-2,
                                          weights_init=w_init, name='out_' + net_name + '_reward_layer')
