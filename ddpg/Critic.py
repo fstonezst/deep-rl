@@ -55,7 +55,7 @@ class CriticNetwork(object):
     def create_critic_network(self, net_name='critic'):
         times = 1
         # N_HIDDEN_1, N_HIDDEN_2 = 400 * times, 300 * times
-        N_HIDDEN_1, N_HIDDEN_2 = 200 * times, 200 * times
+        N_HIDDEN_1, N_HIDDEN_2 = 1 * times, 200 * times
 
         # state input
         # inputs = tflearn.input_data(shape=[None, self.s_dim])

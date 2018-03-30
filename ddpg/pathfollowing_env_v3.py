@@ -80,7 +80,7 @@ class PathFollowingV3(gym.Env):
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=3, error_bound=0.5, isRandom=False, Ip1 = 10):
+    def __init__(self, hislen=50, error_bound=0.5, isRandom=False, Ip1 = 10):
         self.random_model = isRandom
         self.error_bound = error_bound
         self.max_time = 300

@@ -145,7 +145,9 @@ def train(sess, env, args, actor, critic, ae):
             # Added exploration noise
             # dirOut = actor.predict(np.reshape(s, (1, actor.s_dim)))
             s = np.reshape(s, (1, actor.s_dim))
-            dirOut = actor.predict(ae.encode(s))
+            ae_s = ae.encode(s)
+            dirOut = actor.predict(ae_s)
+            # dirOut = actor.predict(ae.encode(s))
 
             if not isConvergence:
                 orientation,orientationNoise = dirOut[0][0], orientationN.ornstein_uhlenbeck_level(orientationNoise)
@@ -160,26 +162,28 @@ def train(sess, env, args, actor, critic, ae):
 
             s2, r, terminal, info = env.step(a)
 
+
+            # for index in range(env.historyLength-1, s_dim+1, env.historyLength):
+            #     new_s2.append(s2[index])
+            # new_s2 = np.array(new_s2)
+
+            # replay_buffer.add(np.reshape(s, (s_dim,)), np.reshape(a, (a_dim,)), r,
+            #                   terminal, np.reshape(new_s2, (state_dim,)))
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
-            # Keep adding experience to the memory until
-            # there are at least minibatch size samples
+
             if replay_buffer.size() > int(args['minibatch_size']):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
                     replay_buffer.sample_batch(int(args['minibatch_size']))
 
-
-
-
-
-                s2_batch = ae.encode(s2_batch)
+                # s2_batch = ae.encode(s2_batch)
                 # Calculate targets
                 target_q = critic.predict_target(
-                    s2_batch, actor.predict_target(s2_batch))
+                    ae.encode(s2_batch), actor.predict_target(ae.encode(s2_batch)))
                 # target_q = critic.predict_target(
                 #     ae.encode(s2_batch), actor.predict_target(ae.encode(s2_batch)))
 
-                y_i, r_i = [], []
+                y_i, r_i, nextState = [], [], []
 
                 for k in range(int(args['minibatch_size'])):
                     if t_batch[k]:
@@ -188,10 +192,24 @@ def train(sess, env, args, actor, critic, ae):
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
                     r_i.append(r_batch[k])
 
+                    nexts = s2_batch[k]
+
+                    new_s2, state_dim = [], 4
+                    index_i = env.historyLength-1
+                    new_s2.append(nexts[index_i] + 0.5)
+                    index_i+=env.historyLength
+                    new_s2.append((nexts[index_i] - AGV.MIN_ANGLE)/(AGV.MAX_ANGLE - AGV.MIN_ANGLE))
+                    index_i+=env.historyLength
+                    new_s2.append(1)
+                    index_i+=env.historyLength
+                    new_s2.append((nexts[index_i]+0.1)/0.2)
+                    nextState.append(new_s2)
+
+
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
                 r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
 
-                nextState = s2_batch
+                # nextState = s2_batch
                 ae.train(s_batch, a_batch, nextState, r_label)
 
                 ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
@@ -415,7 +433,7 @@ def main(args):
                                float(args['gamma']),
                                actor.get_num_trainable_vars())
 
-        ae = autoencoder(sess, input_dim=state_dim, h_dim=200, lr=1.0E-3,a_dim=action_dim, lambda1=10)
+        ae = autoencoder(sess, input_dim=state_dim, a_dim=action_dim)
         if args['use_gym_monitor']:
             if not args['render_env']:
                 env = wrappers.Monitor(
