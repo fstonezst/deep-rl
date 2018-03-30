@@ -80,7 +80,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
         orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
         reward_sum = 0
 
-        if last_loss > 1.0E-5 or i < 100:
+        if last_loss > 1.0E-6 or i < 100:
            isConvergence = False
            count = 10
         else:
