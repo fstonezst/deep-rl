@@ -80,6 +80,8 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
         orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
         reward_sum = 0
 
+        max_pr, min_pr = 0, 10
+
         if last_loss > 1.0E-6 or i < 100:
            isConvergence = False
            count = 10
@@ -97,6 +99,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
             orientationNoise = orientationN.ornstein_uhlenbeck_level(orientationNoise)
             noise = np.array([[orientationNoise]])
             a = noise
+
 
             s2, r, terminal, info = env.step(a)
             reward_sum += r
@@ -152,6 +155,12 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
                     ae.nextState: nextState
                 })
 
+                pre_reward = ae.predict_reward(s_batch, a_batch)
+                max, min = np.amax(pre_reward), np.amin(pre_reward)
+                if max > max_pr:
+                    max_pr = max
+                if min < min_pr:
+                    min_pr = min
                 ae_r_loss_sum += np.amax(ae_reward_loss)
                 ae_total_loss_sum += np.amax(ae_total_loss)
 
@@ -172,7 +181,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
                 writer.flush()
                 if i % 100 == 0:
-                    print '===='+str(i)+':'+str(totalTime)+':'+str(max_u1)+'===='
+                    print '===='+str(i)+':'+str(totalTime)+':'+str(max_pr)+':'+str(min_pr)+'===='
 
                 break
 
@@ -202,7 +211,7 @@ def main(args):
         state_dim = len(env.reset()) #.shape[1] #8  # env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
 
-        ae = autoencoder(sess, input_dim=state_dim, h_dim=200, lr=1.0E-3,a_dim=action_dim, lambda1=10)
+        ae = autoencoder(sess, input_dim=state_dim, a_dim=action_dim)
         if args['use_gym_monitor']:
             if not args['render_env']:
                 env = wrappers.Monitor(
