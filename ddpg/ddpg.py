@@ -35,8 +35,10 @@ def build_summaries():
     tf.summary.scalar("ae_reward_loss", ae_reward_loss)
     ae_total_loss = tf.Variable(0.)
     tf.summary.scalar("ae_total_loss", ae_total_loss)
+    reward_ave = tf.Variable(0.)
+    tf.summary.scalar("reward", reward_ave)
 
-    summary_vars = [ae_reward_loss, ae_total_loss]
+    summary_vars = [ae_reward_loss, ae_total_loss, reward_ave]
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
@@ -68,6 +70,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
         ae_r_loss_sum = 0
         ae_total_loss_sum = 0
+        max_u1 = 0
 
 
         # DELTA  The rate of change (time)
@@ -75,8 +78,9 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
         orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
+        reward_sum = 0
 
-        if last_loss > 1.0E-3:
+        if last_loss > 1.0E-5 or i < 100:
            isConvergence = False
            count = 10
         else:
@@ -95,9 +99,29 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
             a = noise
 
             s2, r, terminal, info = env.step(a)
+            reward_sum += r
+
+            new_s2, state_dim = [], 4
+
+            index_i = env.historyLength-1
+            new_s2.append(s2[index_i] + 0.5)
+            index_i+=env.historyLength
+            new_s2.append((s2[index_i] - AGV.MIN_ANGLE)/(AGV.MAX_ANGLE - AGV.MIN_ANGLE))
+            index_i+=env.historyLength
+            new_s2.append(1)
+            index_i+=env.historyLength
+            new_s2.append((s2[index_i]+0.1)/0.2)
+            if new_s2[-1] > max_u1:
+                max_u1 = new_s2[-1]
+
+            # for index in range(env.historyLength-1, s_dim+1, env.historyLength):
+            #     new_s2.append(s2[index])
+            new_s2 = np.array(new_s2)
 
             replay_buffer.add(np.reshape(s, (s_dim,)), np.reshape(a, (a_dim,)), r,
-                              terminal, np.reshape(s2, (s_dim,)))
+                              terminal, np.reshape(new_s2, (state_dim,)))
+            # replay_buffer.add(np.reshape(s, (s_dim,)), np.reshape(a, (a_dim,)), r,
+            #                   terminal, np.reshape(s2, (s_dim,)))
 
             if replay_buffer.size() > int(args['minibatch_size']):
                 s_batch, a_batch, r_batch, t_batch, s2_batch = \
@@ -110,7 +134,8 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
                 r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
 
-                nextState = ae.encode(s2_batch)
+                # nextState = ae.encode(s2_batch)
+                nextState = s2_batch
                 ae.train(s_batch, a_batch, nextState, r_label)
 
                 ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
@@ -138,7 +163,8 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ae_r_loss_sum / float(j),
-                    summary_vars[1]: ae_total_loss_sum / float(j)
+                    summary_vars[1]: ae_total_loss_sum / float(j),
+                    summary_vars[2]: reward_sum / float(j)
                 })
                 last_loss = ae_total_loss_sum/float(j)
 
@@ -146,7 +172,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
                 writer.flush()
                 if i % 100 == 0:
-                    print '===='+str(i)+':'+str(totalTime)+'===='
+                    print '===='+str(i)+':'+str(totalTime)+':'+str(max_u1)+'===='
 
                 break
 
@@ -199,7 +225,7 @@ if __name__ == '__main__':
     parser.add_argument('--critic-lr', help='critic network learning rate', default=1.0E-3)
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
-    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E4)
+    parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1.0E6)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
@@ -221,7 +247,7 @@ if __name__ == '__main__':
     parser.set_defaults(use_gym_monitor=False)
     parser.set_defaults(max_episodes=2.0E4)
     parser.set_defaults(max_episodes_len=1.0E6)
-    parser.set_defaults(minibatch_size=128)
+    parser.set_defaults(minibatch_size=256)
 
     args = vars(parser.parse_args())
 
