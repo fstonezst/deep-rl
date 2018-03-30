@@ -244,16 +244,26 @@ def train(sess, env, args, actor, critic, ae):
                 speed = info.get("speed")
                 avgError = info.get("avgError")
 
-                summary_str = sess.run(summary_ops, feed_dict={
-                    summary_vars[0]: ep_reward / float(j),
-                    summary_vars[1]: ep_ave_max_q / float(j),
-                    summary_vars[2]: total_loss / float(j),
-                    summary_vars[3]: avgError,
-                    summary_vars[4]: total_gradient / float(j),
-                    summary_vars[5]: ep_reward,
-                    summary_vars[6]: ae_r_loss_sum / float(j),
-                    summary_vars[7]: ae_total_loss_sum / float(j)
-                })
+                if i % 10 == 0:
+                    summary_str = sess.run(summary_ops, feed_dict={
+                        summary_vars[0]: ep_reward / float(j),
+                        summary_vars[1]: ep_ave_max_q / float(j),
+                        summary_vars[2]: total_loss / float(j),
+                        summary_vars[3]: avgError,
+                        summary_vars[4]: total_gradient / float(j),
+                        summary_vars[5]: ep_reward,
+                        summary_vars[6]: ae_r_loss_sum / float(j),
+                        summary_vars[7]: ae_total_loss_sum / float(j)
+                    })
+                else:
+                    summary_str = sess.run(summary_ops, feed_dict={
+                        summary_vars[1]: ep_ave_max_q / float(j),
+                        summary_vars[2]: total_loss / float(j),
+                        summary_vars[4]: total_gradient / float(j),
+                        summary_vars[5]: ep_reward,
+                        summary_vars[6]: ae_r_loss_sum / float(j),
+                        summary_vars[7]: ae_total_loss_sum / float(j)
+                    })
 
                 writer.add_summary(summary_str, i)
 
