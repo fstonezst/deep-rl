@@ -34,25 +34,33 @@ import csv
 #   Tensorflow Summary Ops
 # ===========================
 
-def build_summaries():
+def record():
     episode_reward = tf.Variable(0.)
     tf.summary.scalar("Reward", episode_reward)
+    error = tf.Variable(0.)
+    tf.summary.scalar("error", error)
+    total_reward = tf.Variable(0.)
+    tf.summary.scalar("total_reward", total_reward)
+
+    summary_vars = [episode_reward, error, total_reward]
+    summary_ops = tf.summary.merge_all()
+    # summary_ops = tf.summary.merge_all_summaries()
+
+    return summary_ops, summary_vars
+
+def build_summaries():
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("Qmax Value", episode_ave_max_q)
     train_loss = tf.Variable(0.)
     tf.summary.scalar("train_loss", train_loss)
-    error = tf.Variable(0.)
-    tf.summary.scalar("error", error)
     train_g = tf.Variable(0.)
     tf.summary.scalar("gradient", train_g)
-    total_reward = tf.Variable(0.)
-    tf.summary.scalar("total_reward", total_reward)
     ae_reward_loss = tf.Variable(0.)
     tf.summary.scalar("ae_reward_loss", ae_reward_loss)
     ae_total_loss = tf.Variable(0.)
     tf.summary.scalar("ae_total_loss", ae_total_loss)
 
-    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, total_reward, ae_reward_loss, ae_total_loss]
+    summary_vars = [episode_ave_max_q, train_loss, train_g, ae_reward_loss, ae_total_loss]
     summary_ops = tf.summary.merge_all()
     # summary_ops = tf.summary.merge_all_summaries()
 
@@ -67,6 +75,7 @@ def train(sess, env, args, actor, critic, ae):
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
+    summary_ops2, summary_vars2 = record()
 
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
@@ -85,7 +94,7 @@ def train(sess, env, args, actor, critic, ae):
     curr_model_no = 0
     oriNoiseRate, rotNoiseRate = 1, 0.8
     last_loss, last_times, lastReward, last_error = 4.0E8, 0, -1, 4
-    last_total_reward = -1
+    # last_total_reward = -1
     isConvergence = True
 
     for i in range(int(args['max_episodes'])):
@@ -219,7 +228,7 @@ def train(sess, env, args, actor, critic, ae):
                     ae.nextState: nextState
                 })
 
-                ae_total_loss = sess.run([ae.loss], feed_dict={
+                ae_state_loss = sess.run([ae.state_loss], feed_dict={
                     ae.inputs: s_batch,
                     ae.action: a_batch,
                     ae.reward: r_label,
@@ -243,7 +252,7 @@ def train(sess, env, args, actor, critic, ae):
                 ep_ave_max_q += np.amax(predicted_q_value)
                 total_loss += np.amax(loss)
                 ae_r_loss_sum += np.amax(ae_reward_loss)
-                ae_total_loss_sum += np.amax(ae_total_loss)
+                ae_total_loss_sum += np.amax(ae_state_loss)
 
                 # Update the actor policy using the sampled gradient
                 aGrads1= None
@@ -272,17 +281,21 @@ def train(sess, env, args, actor, critic, ae):
                 speed = info.get("speed")
                 avgError = info.get("avgError")
 
-                summary_str = sess.run(summary_ops, feed_dict={
-                    summary_vars[0]: ep_reward / float(j),
-                    summary_vars[1]: ep_ave_max_q / float(j),
-                    summary_vars[2]: total_loss / float(j),
-                    summary_vars[3]: avgError,
-                    summary_vars[4]: total_gradient / float(j),
-                    summary_vars[5]: ep_reward,
-                    summary_vars[6]: ae_r_loss_sum / float(j),
-                    summary_vars[7]: ae_total_loss_sum / float(j)
-                })
+                if i % 10 == 0:
+                    summary_str = sess.run(summary_ops2, feed_dict={
+                        summary_vars[0]: ep_reward / float(j),
+                        summary_vars[1]: avgError,
+                        summary_vars[2]: ep_reward,
+                    })
+                    writer.add_summary(summary_str, i/10)
 
+                summary_str = sess.run(summary_ops, feed_dict={
+                    summary_vars[0]: ep_ave_max_q / float(j),
+                    summary_vars[1]: total_loss / float(j),
+                    summary_vars[2]: total_gradient / float(j),
+                    summary_vars[3]: ae_r_loss_sum / float(j),
+                    summary_vars[4]: ae_total_loss_sum / float(j)
+                })
                 writer.add_summary(summary_str, i)
 
                 writer.flush()
@@ -325,7 +338,7 @@ def train(sess, env, args, actor, critic, ae):
                 last_loss = total_loss / float(j)
                 last_error = avgError
                 lastReward = ep_reward / float(j)
-                last_total_reward = ep_reward
+                # last_total_reward = ep_reward
                 last_times = j
                 break
     if not isConvergence:
