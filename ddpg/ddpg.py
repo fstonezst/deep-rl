@@ -34,21 +34,26 @@ import csv
 #   Tensorflow Summary Ops
 # ===========================
 
-def record():
-    episode_reward = tf.Variable(0.)
-    tf.summary.scalar("Reward", episode_reward)
-    error = tf.Variable(0.)
-    tf.summary.scalar("error", error)
-    total_reward = tf.Variable(0.)
-    tf.summary.scalar("total_reward", total_reward)
-
-    summary_vars = [episode_reward, error, total_reward]
-    summary_ops = tf.summary.merge_all()
-    # summary_ops = tf.summary.merge_all_summaries()
-
-    return summary_ops, summary_vars
+# def record():
+#     list = ["Reward","error","total_reward"]
+#     episode_reward = tf.Variable(0.)
+#     tf.summary.scalar("Reward", episode_reward)
+#     error = tf.Variable(0.)
+#     tf.summary.scalar("error", error)
+#     total_reward = tf.Variable(0.)
+#     tf.summary.scalar("total_reward", total_reward)
+#
+#     summary_vars = [episode_reward, error, total_reward]
+#     # summary_ops = tf.summary.merge_all()
+#     # summary_ops = tf.summary.merge(summary_vars)
+#     summary_ops = tf.summary.merge(tf.get_collection(summary_vars))
+#
+#     # summary_ops = tf.summary.merge_all_summaries()
+#
+#     return summary_ops, summary_vars
 
 def build_summaries():
+    list = ["Qmax Value","train_loss","gradient","ae_reward_loss","ae_total_loss"]
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("Qmax Value", episode_ave_max_q)
     train_loss = tf.Variable(0.)
@@ -57,11 +62,18 @@ def build_summaries():
     tf.summary.scalar("gradient", train_g)
     ae_reward_loss = tf.Variable(0.)
     tf.summary.scalar("ae_reward_loss", ae_reward_loss)
-    ae_total_loss = tf.Variable(0.)
-    tf.summary.scalar("ae_total_loss", ae_total_loss)
+    ae_state_loss = tf.Variable(0.)
+    tf.summary.scalar("ae_state_loss", ae_state_loss)
+    episode_reward = tf.Variable(0.)
+    tf.summary.scalar("Reward", episode_reward)
+    error = tf.Variable(0.)
+    tf.summary.scalar("error", error)
+    total_reward = tf.Variable(0.)
+    tf.summary.scalar("total_reward", total_reward)
 
-    summary_vars = [episode_ave_max_q, train_loss, train_g, ae_reward_loss, ae_total_loss]
+    summary_vars = [episode_ave_max_q, train_loss, train_g, ae_reward_loss, ae_state_loss,episode_reward, error, total_reward]
     summary_ops = tf.summary.merge_all()
+    # summary_ops = tf.summary.merge(tf.get_collection(summary_vars))
     # summary_ops = tf.summary.merge_all_summaries()
 
     return summary_ops, summary_vars
@@ -75,7 +87,7 @@ def train(sess, env, args, actor, critic, ae):
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
-    summary_ops2, summary_vars2 = record()
+    # summary_ops2, summary_vars2 = record()
 
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
@@ -107,7 +119,7 @@ def train(sess, env, args, actor, critic, ae):
         ep_ave_max_q = 0
         total_loss = 0
         ae_r_loss_sum = 0
-        ae_total_loss_sum = 0
+        ae_state_loss_sum = 0
         total_gradient = 0
 
 
@@ -252,7 +264,7 @@ def train(sess, env, args, actor, critic, ae):
                 ep_ave_max_q += np.amax(predicted_q_value)
                 total_loss += np.amax(loss)
                 ae_r_loss_sum += np.amax(ae_reward_loss)
-                ae_total_loss_sum += np.amax(ae_state_loss)
+                ae_state_loss_sum += np.amax(ae_state_loss)
 
                 # Update the actor policy using the sampled gradient
                 aGrads1= None
@@ -282,23 +294,19 @@ def train(sess, env, args, actor, critic, ae):
                 avgError = info.get("avgError")
 
                 if i % 10 == 0:
-                    summary_str = sess.run(summary_ops2, feed_dict={
-                        summary_vars[0]: ep_reward / float(j),
-                        summary_vars[1]: avgError,
-                        summary_vars[2]: ep_reward,
+                    summary_str = sess.run(summary_ops, feed_dict={
+                        summary_vars[0]: ep_ave_max_q / float(j),
+                        summary_vars[1]: total_loss / float(j),
+                        summary_vars[2]: total_gradient / float(j),
+                        summary_vars[3]: ae_r_loss_sum / float(j),
+                        summary_vars[4]: ae_state_loss_sum / float(j),
+                        summary_vars[5]: ep_reward / float(j),
+                        summary_vars[6]: avgError,
+                        summary_vars[7]: ep_reward
                     })
                     writer.add_summary(summary_str, i/10)
 
-                summary_str = sess.run(summary_ops, feed_dict={
-                    summary_vars[0]: ep_ave_max_q / float(j),
-                    summary_vars[1]: total_loss / float(j),
-                    summary_vars[2]: total_gradient / float(j),
-                    summary_vars[3]: ae_r_loss_sum / float(j),
-                    summary_vars[4]: ae_total_loss_sum / float(j)
-                })
-                writer.add_summary(summary_str, i)
-
-                writer.flush()
+                    writer.flush()
 
                 debug = True if str(args['debug']) == "True" else False
                 if debug:

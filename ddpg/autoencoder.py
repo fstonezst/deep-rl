@@ -118,6 +118,6 @@ class autoencoder:
         reward = tflearn.fully_connected(hideVector, 1, regularizer='L2',
                                          weight_decay=1.0E-2,
                                          weights_init=w_init, name='out_' + net_name + '_reward_layer')
-        reward = tflearn.activation(reward, 'sigmoid')
+        # reward = tflearn.activation(reward, 'sigmoid')
 
         return action, state, -reward
