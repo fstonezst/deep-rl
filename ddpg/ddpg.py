@@ -58,7 +58,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
     totalTime = 0
     count = 10
-    last_loss = 4.0E8
+    last_state_loss, last_reward_loss = 4.0E8, 4.0E8
     isConvergence = True
     orientationNoise = 0
     oriNoiseRate = 1
@@ -82,15 +82,16 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
         max_pr, min_pr = 0, 10
 
-        if last_loss > 1.0E-6 or i < 100:
+        isConvergence = True
+        if last_state_loss > 5.0E-5 or last_reward_loss > 5.0E-4 or i < 100:
            isConvergence = False
-           count = 10
+           count = 3
         else:
-            count -= 1
-            if count == 0:
-                saver.save(sess,'ae_model_'+str(i))
-                print "===================="+str(i)+"================="
-                break
+            # count -= 1
+            # if count == 0:
+            saver.save(sess, 'model_ae_'+str(i))
+            print "===================="+str(i)+"================="
+            break
 
         for j in range(1, 4000):
             if args['render_env']:
@@ -177,7 +178,8 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
                     summary_vars[1]: ae_state_loss_sum / float(j),
                     summary_vars[2]: reward_sum / float(j)
                 })
-                last_loss = ae_state_loss_sum/float(j)
+                last_state_loss = ae_state_loss_sum / float(j)
+                last_reward_loss = ae_r_loss_sum / float(j)
 
                 writer.add_summary(summary_str, i)
 
