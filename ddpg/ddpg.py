@@ -63,7 +63,7 @@ def build_summaries():
 #   Agent Training
 # ===========================
 
-def train(sess, env, args, actor, critic, ae):
+def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
@@ -71,7 +71,23 @@ def train(sess, env, args, actor, critic, ae):
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
 
-    saver = tf.train.Saver()
+    if finetune:
+        # variables_names = [v.name for v in tf.trainable_variables()]
+        variables_names = [v for v in tf.trainable_variables() if v.name.startswith('encoder') or v.name.startswith('deconder')]
+        # values = sess.run(variables_names)
+        # for k, v in zip(variables_names, values):
+        #     print "Variable: ", k
+        #     print "Shape: ", v.shape
+        #     print v
+        # return
+
+        saver = tf.train.Saver(var_list=variables_names)
+        # saver = tf.train.Saver(var_list=values)
+
+        # saver = tf.train.Saver()
+        saver.restore(sess, model)
+    else:
+        saver = tf.train.Saver()
 
     # Initialize target network weights
     actor.update_target_network()
@@ -417,7 +433,7 @@ def main(args):
                                float(args['gamma']),
                                actor.get_num_trainable_vars())
 
-        ae = autoencoder(sess, input_dim=state_dim, h_dim=200, lr=1.0E-3,a_dim=action_dim, lambda1=10)
+        ae = autoencoder(sess, input_dim=state_dim, a_dim=action_dim)
         if args['use_gym_monitor']:
             if not args['render_env']:
                 env = wrappers.Monitor(
@@ -427,8 +443,11 @@ def main(args):
 
         if args['model'] == '':
             train(sess, env, args, actor, critic, ae)
-        else:
+        elif args['ft'] == 'False':
             predictWork(sess, 'model_'+str(args['model']), env, args, actor)
+        else:
+            train(sess, env, args, actor, critic, ae, finetune=True, model='model_'+str(args['model']))
+
 
         if args['use_gym_monitor']:
             env.close()
@@ -459,6 +478,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', help='restore model', default='')
     parser.add_argument('--envno', help='env NO.', default='3')
     parser.add_argument('--debug', help='store path', default='False')
+    parser.add_argument('--ft', help='finetune', default='False')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
