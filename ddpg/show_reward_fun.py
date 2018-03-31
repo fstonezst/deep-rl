@@ -26,7 +26,7 @@ def out_fun(out):
 
 
 # step, start, end = 0.01, 0.0, 0.1  #PathFollowingV2.error_bound
-step, start, end = 0.01, 0.0, 0.1  #PathFollowingV2.error_bound
+step, start, end = 0.005, 0.0, 0.05  #PathFollowingV2.error_bound
 X = np.arange(start, end, step)
 step, start, end = 0.05, 0, 0.5         #AGV.MAX_SPEED
 Y = np.arange(start, end, step)

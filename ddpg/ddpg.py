@@ -83,7 +83,7 @@ def build_summaries():
 #   Agent Training
 # ===========================
 
-def train(sess, env, args, actor, critic, ae):
+def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
     from Noise import OrnsteinUhlenbeckNoise
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
@@ -92,7 +92,23 @@ def train(sess, env, args, actor, critic, ae):
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
 
-    saver = tf.train.Saver()
+    if finetune:
+        # variables_names = [v.name for v in tf.trainable_variables()]
+        variables_names = [v for v in tf.trainable_variables() if v.name.startswith('encoder')]
+        # values = sess.run(variables_names)
+        # for k, v in zip(variables_names, values):
+        #     print "Variable: ", k
+        #     print "Shape: ", v.shape
+        #     print v
+        # return
+
+        saver = tf.train.Saver(var_list=variables_names)
+        # saver = tf.train.Saver(var_list=values)
+
+        # saver = tf.train.Saver()
+        saver.restore(sess, model)
+    else:
+        saver = tf.train.Saver()
 
     # Initialize target network weights
     actor.update_target_network()
