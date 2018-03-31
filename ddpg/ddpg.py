@@ -83,7 +83,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
         max_pr, min_pr = 0, 10
 
         isConvergence = True
-        if last_state_loss > 5.0E-5 or last_reward_loss > 5.0E-4 or i < 100:
+        if last_state_loss > 5.0E-6 or last_reward_loss > 5.0E-5 or i < 100:
            isConvergence = False
            count = 3
         else:
