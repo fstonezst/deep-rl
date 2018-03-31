@@ -247,8 +247,8 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
                 r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
 
                 # nextState = s2_batch
-                if not finetune:
-                    ae.train(s_batch, a_batch, nextState, r_label)
+                # if not finetune:
+                ae.train(s_batch, a_batch, nextState, r_label)
 
                 ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
                     ae.inputs: s_batch,

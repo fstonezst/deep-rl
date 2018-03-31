@@ -4,7 +4,7 @@ import numpy as np
 
 
 class autoencoder:
-    def __init__(self, sess, input_dim, h_dim=10, lr=1.0E-3, a_dim=1, lambda1=10):
+    def __init__(self, sess, input_dim, h_dim=10, lr=1.0E-5, a_dim=1, lambda1=10):
         self.sess = sess
         self.s_dim, self.a_dim, self.h_dim = input_dim, a_dim, h_dim
         self.lambda1 = lambda1
