@@ -47,12 +47,12 @@ def build_summaries():
     tf.summary.scalar("gradient", train_g)
     total_reward = tf.Variable(0.)
     tf.summary.scalar("total_reward", total_reward)
-    ae_reward_loss = tf.Variable(0.)
-    tf.summary.scalar("ae_reward_loss", ae_reward_loss)
+    ae_state_loss = tf.Variable(0.)
+    tf.summary.scalar("ae_state_loss", ae_state_loss)
     ae_total_loss = tf.Variable(0.)
     tf.summary.scalar("ae_total_loss", ae_total_loss)
 
-    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, total_reward, ae_reward_loss, ae_total_loss]
+    summary_vars = [episode_reward, episode_ave_max_q, train_loss, error, train_g, total_reward, ae_state_loss, ae_total_loss]
     summary_ops = tf.summary.merge_all()
     # summary_ops = tf.summary.merge_all_summaries()
 
@@ -125,7 +125,7 @@ def train(sess, env, args, actor, critic, ae):
             if count == 0:
                 Model_change = False
                 if not Model_change:
-                    saver.save(sess,'model_'+str(i))
+                    saver.save(sess, 'model_'+str(i))
                     print "===================="+str(i)+"================="
                     break
                 else:
@@ -170,7 +170,7 @@ def train(sess, env, args, actor, critic, ae):
                 target_q = critic.predict_target(
                     s2_batch, actor.predict_target(s2_batch))
 
-                y_i, r_i = [], []
+                y_i, r_i, nextState = [], [], []
 
                 for k in range(int(args['minibatch_size'])):
                     if t_batch[k]:
@@ -179,10 +179,24 @@ def train(sess, env, args, actor, critic, ae):
                         y_i.append(r_batch[k] + critic.gamma * target_q[k])
                     r_i.append(r_batch[k])
 
+                    nexts = s2_batch[k]
+
+                    new_s2, state_dim = [], 4
+                    index_i = env.historyLength-1
+                    new_s2.append(nexts[index_i] + 0.5)
+                    index_i+=env.historyLength
+                    new_s2.append((nexts[index_i] - AGV.MIN_ANGLE)/(AGV.MAX_ANGLE - AGV.MIN_ANGLE))
+                    index_i+=env.historyLength
+                    new_s2.append(1)
+                    index_i+=env.historyLength
+                    new_s2.append((nexts[index_i]+0.1)/0.2)
+                    nextState.append(new_s2)
+
+
                 y_label = np.reshape(y_i, (int(args['minibatch_size']), 1))
                 r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
 
-                nextState = ae.encode(s2_batch)
+                # nextState = s2_batch
                 ae.train(s_batch, a_batch, nextState, r_label)
 
                 ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
@@ -192,7 +206,7 @@ def train(sess, env, args, actor, critic, ae):
                     ae.nextState: nextState
                 })
 
-                ae_total_loss = sess.run([ae.loss], feed_dict={
+                ae_state_loss = sess.run([ae.state_loss], feed_dict={
                     ae.inputs: s_batch,
                     ae.action: a_batch,
                     ae.reward: r_label,
@@ -215,7 +229,7 @@ def train(sess, env, args, actor, critic, ae):
                 ep_ave_max_q += np.amax(predicted_q_value)
                 total_loss += np.amax(loss)
                 ae_r_loss_sum += np.amax(ae_reward_loss)
-                ae_total_loss_sum += np.amax(ae_total_loss)
+                ae_total_loss_sum += np.amax(ae_state_loss)
 
                 # Update the actor policy using the sampled gradient
                 aGrads1= None
@@ -255,19 +269,8 @@ def train(sess, env, args, actor, critic, ae):
                         summary_vars[6]: ae_r_loss_sum / float(j),
                         summary_vars[7]: ae_total_loss_sum / float(j)
                     })
-                # else:
-                #     summary_str = sess.run(summary_ops, feed_dict={
-                #         summary_vars[1]: ep_ave_max_q / float(j),
-                #         summary_vars[2]: total_loss / float(j),
-                #         summary_vars[4]: total_gradient / float(j),
-                #         summary_vars[5]: ep_reward,
-                #         summary_vars[6]: ae_r_loss_sum / float(j),
-                #         summary_vars[7]: ae_total_loss_sum / float(j)
-                #     })
-
-                writer.add_summary(summary_str, i)
-
-                writer.flush()
+                    writer.add_summary(summary_str, i)
+                    writer.flush()
 
                 debug = True if str(args['debug']) == "True" else False
                 if debug:
