@@ -94,7 +94,7 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
 
     if finetune:
         # variables_names = [v.name for v in tf.trainable_variables()]
-        variables_names = [v for v in tf.trainable_variables() if v.name.startswith('encoder')]
+        variables_names = [v for v in tf.trainable_variables() if v.name.startswith('encoder') or v.name.startswith('deconder')]
         # values = sess.run(variables_names)
         # for k, v in zip(variables_names, values):
         #     print "Variable: ", k
@@ -247,7 +247,8 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
                 r_label = np.reshape(r_i, (int(args['minibatch_size']), 1))
 
                 # nextState = s2_batch
-                ae.train(s_batch, a_batch, nextState, r_label)
+                if not finetune:
+                    ae.train(s_batch, a_batch, nextState, r_label)
 
                 ae_reward_loss = sess.run([ae.reward_loss], feed_dict={
                     ae.inputs: s_batch,
@@ -480,8 +481,11 @@ def main(args):
 
         if args['model'] == '':
             train(sess, env, args, actor, critic, ae)
-        else:
+        elif args['ft'] == 'False':
             predictWork(sess, 'model_'+str(args['model']), env, args, actor)
+        else:
+            train(sess, env, args, actor, critic, ae, finetune=True, model='model_'+str(args['model']))
+
 
         if args['use_gym_monitor']:
             env.close()
@@ -512,6 +516,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', help='restore model', default='')
     parser.add_argument('--envno', help='env NO.', default='3')
     parser.add_argument('--debug', help='store path', default='False')
+    parser.add_argument('--ft', help='finetune', default='False')
 
     parser.set_defaults(render_env=False)
     # parser.set_defaults(render_env=True)
