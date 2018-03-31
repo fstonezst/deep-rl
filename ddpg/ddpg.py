@@ -33,12 +33,12 @@ from AGV_Model import AGV
 def build_summaries():
     ae_reward_loss = tf.Variable(0.)
     tf.summary.scalar("ae_reward_loss", ae_reward_loss)
-    ae_total_loss = tf.Variable(0.)
-    tf.summary.scalar("ae_total_loss", ae_total_loss)
+    ae_state_loss = tf.Variable(0.)
+    tf.summary.scalar("ae_state_loss", ae_state_loss)
     reward_ave = tf.Variable(0.)
     tf.summary.scalar("reward", reward_ave)
 
-    summary_vars = [ae_reward_loss, ae_total_loss, reward_ave]
+    summary_vars = [ae_reward_loss, ae_state_loss, reward_ave]
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
@@ -69,7 +69,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
         s = env.reset()
 
         ae_r_loss_sum = 0
-        ae_total_loss_sum = 0
+        ae_state_loss_sum = 0
         max_u1 = 0
 
 
@@ -78,7 +78,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
         # OU_A   The rate of mean reversion
         # OU_MU  The long run average interest rate
         orientationN = OrnsteinUhlenbeckNoise(delta=0.5, sigma=0.5 * AGV.MAX_ORIENTATION * oriNoiseRate)
-        reward_sum = 0
+        reward_min, reward_sum = 0, 0
 
         max_pr, min_pr = 0, 10
 
@@ -102,6 +102,8 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
 
             s2, r, terminal, info = env.step(a)
+            if r < reward_min:
+                reward_min = r
             reward_sum += r
 
             new_s2, state_dim = [], 4
@@ -148,7 +150,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
                     ae.nextState: nextState
                 })
 
-                ae_total_loss = sess.run([ae.loss], feed_dict={
+                ae_state_loss = sess.run([ae.state_loss], feed_dict={
                     ae.inputs: s_batch,
                     ae.action: a_batch,
                     ae.reward: r_label,
@@ -162,7 +164,7 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
                 if min < min_pr:
                     min_pr = min
                 ae_r_loss_sum += np.amax(ae_reward_loss)
-                ae_total_loss_sum += np.amax(ae_total_loss)
+                ae_state_loss_sum += np.amax(ae_state_loss)
 
             s = s2
 
@@ -172,16 +174,16 @@ def trainAE(sess, env, args, s_dim, a_dim, ae):
 
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ae_r_loss_sum / float(j),
-                    summary_vars[1]: ae_total_loss_sum / float(j),
+                    summary_vars[1]: ae_state_loss_sum / float(j),
                     summary_vars[2]: reward_sum / float(j)
                 })
-                last_loss = ae_total_loss_sum/float(j)
+                last_loss = ae_state_loss_sum/float(j)
 
                 writer.add_summary(summary_str, i)
 
                 writer.flush()
                 if i % 100 == 0:
-                    print '===='+str(i)+':'+str(totalTime)+':'+str(max_pr)+':'+str(min_pr)+'===='
+                    print '===='+str(i)+':'+str(totalTime)+':'+str(reward_min)+':'+str(min_pr)+'===='
 
                 break
 

@@ -21,7 +21,7 @@ class autoencoder:
         # self.nextState = tf.placeholder(tf.float32, [None, self.h_dim], name='next_state_input')
         # self.nextState = tf.placeholder(tf.float32, [None, self.s_dim], name='next_state_input')
         self.nextState = tf.placeholder(tf.float32, [None, self.state_dim], name='next_state_input')
-        self.state_loss = tflearn.mean_square(self.nextState, self.stateOut)
+        self.state_loss = self.lambda1 * tflearn.mean_square(self.nextState, self.stateOut)
 
         # complete reward loss
         self.reward = tf.placeholder(tf.float32, [None, 1], name='reward_input')
@@ -29,8 +29,8 @@ class autoencoder:
         self.reward_loss = tflearn.mean_square(self.reward, self.rewardOut)
 
         # sum loss
-        # self.loss = self.reward_loss + self.state_loss
-        self.loss = self.reward_loss
+        self.loss = self.reward_loss + self.state_loss
+        # self.loss = self.reward_loss
         # self.loss = self.state_loss
 
         # optimizer
@@ -118,6 +118,6 @@ class autoencoder:
         reward = tflearn.fully_connected(hideVector, 1, regularizer='L2',
                                          weight_decay=1.0E-2,
                                          weights_init=w_init, name='out_' + net_name + '_reward_layer')
-        reward = tflearn.activation(reward, 'sigmoid')
+        # reward = tflearn.activation(reward, 'sigmoid')
 
         return action, state, -reward
