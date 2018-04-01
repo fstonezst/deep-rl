@@ -11,10 +11,10 @@ class AGV:
     MAX_ORIENTATION, MAX_ROTATION = 0.5, 300
     count = 0
 
-    def __init__(self, wheelPos=[10,0], theta=np.pi, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
-                 l=[1.22, 0.268, 0.268]):
-    # def __init__(self, wheelPos=[10,0], theta=np.pi, mess=1000, w_mess=[20, 2, 2], h=0.6, rs=0.225, rf=0.08, I0=300, Ip1=20, Ir=[1, 0.05, 0.05],
+    # def __init__(self, wheelPos=[10,0], theta=np.pi, mess=500, w_mess=[10, 1, 1], h=0.6, rs=0.125, rf=0.05, I0=250, Ip1=10, Ir=[1, 0.05, 0.05],
     #              l=[1.22, 0.268, 0.268]):
+    def __init__(self, wheelPos=[10,0], theta=np.pi, mess=700, w_mess=[15, 2, 2], h=0.6, rs=0.125, rf=0.05, I0=280, Ip1=20, Ir=[1, 0.05, 0.05],
+                 l=[1.82, 0.368, 0.368]):
         self.wheelPos = wheelPos
         # self.uk = np.matrix([[1.6], [0.0]])
         self.uk = np.matrix([[1.0], [0.0]])
