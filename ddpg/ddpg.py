@@ -274,7 +274,7 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
                 speed = info.get("speed")
                 avgError = info.get("avgError")
 
-                if i % 10 == 0 or True:
+                if i % 10 == 0:
                     summary_str = sess.run(summary_ops, feed_dict={
                         summary_vars[0]: ep_reward / float(j),
                         summary_vars[1]: ep_ave_max_q / float(j),
