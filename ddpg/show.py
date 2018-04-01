@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,14 +8,13 @@ from matplotlib.patches import Circle
 
 class Drawer(object):
 
-    def __init__(self, path, lineColor=['k-', 'r-', 'g-', 'y-']):
+    def __init__(self, path, lineColor=['k-', 'k-.', 'g-', 'y-']):
         self.lineColor = lineColor
         self.path = path
 
     def showBeta(self, idlist):
         beta_value = []
         if not isinstance(idlist, list):
-            idlist = [idlist]
             idlist = [idlist]
 
         for i in idlist:
@@ -186,38 +186,55 @@ class Drawer(object):
         ax.legend(loc='best')
         plt.show()
 
-    def showLoss(self, fileName='loss.csv'):
+    def showLoss(self, idList):
         import csv
-        loss = []
-        with open(self.path + fileName,'r') as f:
-            reader = csv.reader(f)
-            reader.next()
-            for row in reader:
-                loss.append(float(row[2]))
+        loss, mylabel = [], ["with AE", "without AE"]
+        for i in idList:
+            with open(self.path+'loss'+str(i)+'.csv','rb') as f:
+                reader = csv.reader(f)
+                reader.next()
+                v = []
+                for row in reader:
+                    v.append(float(row[2]))
+                loss.append(v)
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(loss, 'r-', label='loss', lw=1)
+        for i, value in enumerate(loss):
+            # mylabel = 'reward'+str(i)
+            ax.plot(value, self.lineColor[i], label=mylabel[i], lw=1)
         ax.grid(True)
-        ax.set_xlabel("step")
-        ax.set_ylabel("loss")
-        # ax.legend(loc='best')
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
+        ax.set_xlabel(u"训练步数")
+        ax.set_ylabel(u"残差")
+        ax.legend(loc='best')
+        plt.xticks(range(0, 70, 10), range(0, 700, 100))
         plt.show()
 
-    def showReward(self, fileName='Reward.csv'):
+    def showReward(self, idList):
         import csv
-        reward = []
-        with open(self.path + fileName,'r') as f:
-            reader = csv.reader(f)
-            reader.next()
-            for row in reader:
-                reward.append(float(row[2]))
+        reward, mylabel = [], ["with AE", "without AE"]
+        for i in idList:
+            with open(self.path+'Reward'+str(i)+'.csv','rb') as f:
+                reader = csv.reader(f)
+                reader.next()
+                r = []
+                for row in reader:
+                    r.append(float(row[2]))
+                reward.append(r)
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(reward, 'r-', label='reward', lw=1)
+        for i, value in enumerate(reward):
+            # mylabel = 'reward'+str(i)
+            ax.plot(value, self.lineColor[i], label=mylabel[i], lw=1)
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
         ax.grid(True)
-        ax.set_xlabel("step")
-        ax.set_ylabel("reward")
-        # ax.legend(loc='best')
+        ax.set_xlabel(u"训练步数")
+        ax.set_ylabel(u"奖励")
+        ax.legend(loc='best')
+        plt.xticks(range(0, 70, 10), range(0, 700, 100))
+        # plt.xticks(np.linspace(0,600,10))
         plt.show()
 
 
@@ -230,15 +247,15 @@ if __name__=="__main__":
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/final_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [0]
-    path, modelNo = 'E:\experimentCode\deep-rl\ddpg//', [0,1]
+    path, modelNo = 'E:\experimentCode\deep-rl\ddpg//', [1,2]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490] #, 233, 373]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
 
     draw = Drawer(path)
-    # draw.showLoss()
-    # draw.showReward()
+    draw.showLoss(modelNo)
+    # draw.showReward(modelNo)
     # draw.showSpeed(modelNo)
-    draw.showError(modelNo)
-    draw.showPath(modelNo)
-    draw.showBeta(modelNo)
-    draw.showRotation(modelNo)
+    # draw.showError(modelNo)
+    # draw.showPath(modelNo)
+    # draw.showBeta(modelNo)
+    # draw.showRotation(modelNo)
