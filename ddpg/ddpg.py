@@ -129,7 +129,7 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
 
         isConvergence = True
         # if last_loss > 4.0E-3 or last_error > 0.05 or last_times < env.max_time or lastReward < -0.01 or i < 500:
-        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.001 or last_error >= 0.05:
+        if last_loss > 4.0E-3 or last_times < env.max_time or lastReward < -0.002 or last_error >= 0.05:
            isConvergence = False
            count = 10
            # if last_error <= 0.07 and i > (curr_model_no + 30):
