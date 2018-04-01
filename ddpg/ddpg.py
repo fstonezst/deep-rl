@@ -321,7 +321,7 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
                         summary_vars[6]: avgError,
                         summary_vars[7]: ep_reward
                     })
-                    writer.add_summary(summary_str, i/10)
+                    writer.add_summary(summary_str, i)
 
                     writer.flush()
 
