@@ -208,7 +208,7 @@ class Drawer(object):
         ax.set_xlabel(u"训练步数")
         ax.set_ylabel(u"残差")
         ax.legend(loc='best')
-        plt.xticks(range(0, 70, 10), range(0, 700, 100))
+        plt.xticks(range(0, 80, 10), range(0, 800, 100))
         plt.show()
 
     def showReward(self, idList):
@@ -233,7 +233,7 @@ class Drawer(object):
         ax.set_xlabel(u"训练步数")
         ax.set_ylabel(u"奖励")
         ax.legend(loc='best')
-        plt.xticks(range(0, 70, 10), range(0, 700, 100))
+        plt.xticks(range(0, 80, 10), range(0, 800, 100))
         # plt.xticks(np.linspace(0,600,10))
         plt.show()
 
@@ -247,13 +247,13 @@ if __name__=="__main__":
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/final_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [0]
-    path, modelNo = 'E:\experimentCode\deep-rl\ddpg//', [1,2]
+    path, modelNo = 'E:\experimentCode\deep-rl\ddpg//', [0, 1]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490] #, 233, 373]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
 
     draw = Drawer(path)
     draw.showLoss(modelNo)
-    # draw.showReward(modelNo)
+    draw.showReward(modelNo)
     # draw.showSpeed(modelNo)
     # draw.showError(modelNo)
     # draw.showPath(modelNo)

@@ -378,7 +378,7 @@ def predictWork(sess, model, env, args, actor):
     no = model.split('_')[1]
     times = 310
 
-    for i in range(1):
+    for i in range(10):
         s, info, len = env.reset(), None, 0
         env.setMaxTime(times-10)
         for j in range(1, times):
@@ -398,7 +398,7 @@ def predictWork(sess, model, env, args, actor):
         speed = info.get("speed")
         error_record, beta_record = info.get("error"), info.get("beta")
 
-        no = str(0)
+        no = str(i)
 
         with open('movePath'+no+'.csv','wb') as f:
             csv_writer = csv.writer(f)

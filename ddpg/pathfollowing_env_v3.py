@@ -22,7 +22,7 @@ class PathFollowingV3(gym.Env):
     def _reset(self):
         # random = self.np_random
         history_len = self.historyLength
-        if self.random_model:
+        if self.random_model or self.init_random:
             wheelx, wheely = random.randint(-3, 3) * 0.1 + 10, 0
             theta = random.randint(-35, 35) * 0.01 + np.pi
         else:
@@ -80,8 +80,9 @@ class PathFollowingV3(gym.Env):
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=50, error_bound=0.5, isRandom=False, Ip1 = 8):
+    def __init__(self, hislen=50, error_bound=0.5, isRandom=False, init_random=False, Ip1 = 8):
         self.random_model = isRandom
+        self.init_random = init_random
         self.error_bound = error_bound
         self.max_time = 300
         self.viewer = None
