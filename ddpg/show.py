@@ -230,7 +230,8 @@ class Drawer(object):
 if __name__=="__main__":
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/final_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
-    path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [1]
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [0]
+    path, modelNo = '', [0]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490] #, 233, 373]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
 
@@ -239,6 +240,6 @@ if __name__=="__main__":
     # draw.showReward()
     # draw.showSpeed(modelNo)
     draw.showError(modelNo)
-    # draw.showPath(modelNo)
-    # draw.showBeta(modelNo)
-    # draw.showRotation(modelNo)
+    draw.showPath(modelNo)
+    draw.showBeta(modelNo)
+    draw.showRotation(modelNo)

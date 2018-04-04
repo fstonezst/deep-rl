@@ -28,8 +28,8 @@ class PathFollowingV3(gym.Env):
         else:
             # wheelx, wheely = random.randint(-10, 10) * 0.01 + 10, 0
             # theta = random.randint(-20, 20) * 0.01 + np.pi
-            wheelx, wheely = 10, 0
-            # wheelx, wheely = 9.9, 0
+            # wheelx, wheely = 10, 0
+            wheelx, wheely = 9.95, 0
             theta = np.pi
         self.car = AGV(wheelPos=[wheelx, wheely], theta=theta, Ip1=self.Ip1)
         self.totalError = 0
@@ -69,7 +69,7 @@ class PathFollowingV3(gym.Env):
         self.error_reward_record = []
 
         self.error_buffer = [0] * history_len
-        self.beta_buffer = [0] * history_len
+        self.beta_buffer = [np.pi * 0.5] * history_len
         self.u0_buffer = [0] * history_len
         self.u1_buffer = [0] * history_len
 
@@ -80,7 +80,7 @@ class PathFollowingV3(gym.Env):
         self.state = errorState + betaState + u0State + u1State
         return np.array(self.state)
 
-    def __init__(self, hislen=3, error_bound=0.5, isRandom=False, Ip1 = 10):
+    def __init__(self, hislen=1, error_bound=0.1, isRandom=False, Ip1 = 10):
         self.random_model = isRandom
         self.error_bound = error_bound
         self.max_time = 300
