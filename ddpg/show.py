@@ -240,6 +240,6 @@ if __name__=="__main__":
     # draw.showReward()
     # draw.showSpeed(modelNo)
     draw.showError(modelNo)
-    draw.showPath(modelNo)
+    # draw.showPath(modelNo)
     draw.showBeta(modelNo)
     draw.showRotation(modelNo)

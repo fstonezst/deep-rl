@@ -36,21 +36,39 @@ import csv
 def pidControl(env):
     from PIDControl import PID
     # P, I, D = -0.001, 0.0, -0.1
-    P, I, D = 3, 0.005, 0.25
+    # P, I, D = 3, 0.005, 0.25
+    P, I, D = 1, 0.05, 6
     pid = PID(P, I, D)
     pid.SetPoint = np.pi * 0.5
+
+    P, I, D = 5.4, 0.05, 6
+    pid2 = PID(P, I, D)
+    pid2.SetPoint = 0
+
     s = env.reset()
     # env.car.Ir, env.car.w_mss, env.car.Ip1 = [13, 0.03, 0.03], [20,2.3,2.3], 10
     # env.car.setMess(1000)
     feedBack = s[env.historyLength * 2 - 1]
     print "====="+str(feedBack)+"====="
-    curr_error = -0.05
+    # curr_error = -0.05
 
+    setBeta = []
     for i in range(env.max_time):
-        targetBeta = curr_error * 10.4
-        pid.SetPoint = np.pi * 0.5 - targetBeta
+        curr_error = s[env.historyLength -1]
+        feedBack = s[env.historyLength * 2 - 1]
+
+        # targetBeta = curr_error * 10.4
+        pid2.update(-curr_error)
+        targetBeta = pid2.output
+
+        set_beta = np.pi * 0.5 - targetBeta
+        setBeta.append(set_beta)
+
+
+        pid.SetPoint = set_beta
         pid.update(feedBack)
         outPut = -pid.output
+
         # if outPut > AGV.MAX_ORIENTATION:
         #     outPut = AGV.MAX_ORIENTATION
         #     print 'max'
@@ -99,9 +117,11 @@ def pidControl(env):
 
             with open('beta' + no + '.csv', 'wb') as f:
                 csv_writer = csv.writer(f)
-                for x in beta_record:
+                # for x in beta_record:
+                for x in setBeta:
                     csv_writer.writerow([x])
             break
+
         else:
             curr_beta = s[env.historyLength*2-1]
             curr_error = s[env.historyLength -1]

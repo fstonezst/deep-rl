@@ -112,11 +112,11 @@ class AGV:
 
         #constraint of angle and speed of steering wheel
         angle = float(self.q[3])
-        if angle <= AGV.MIN_ANGLE:
+        if angle < AGV.MIN_ANGLE:
             #right direction
             self.uk[1] = 0
             self.q[3] = AGV.MIN_ANGLE
-        elif angle >= AGV.MAX_ANGLE:
+        elif angle > AGV.MAX_ANGLE:
             #left direction
             self.uk[1] = 0
             self.q[3] = AGV.MAX_ANGLE
@@ -241,7 +241,7 @@ class AGV:
 # # centerx, centery = [], []
 # B = []
 # from PIDControl import PID
-# P, I, D = 3, 0.005, 0.25
+# P, I, D = 1, 0.05, 6
 # pid = PID(P, I, D)
 # pid.SetPoint = (70 / 180.0) * np.pi
 # for i in range(100):
@@ -257,6 +257,8 @@ class AGV:
 #     pid.update(feedBack)
 #     outPut = pid.output
 #     car.controlInput(np.matrix([outPut, 0]))
+#     if i == 50:
+#         pid.SetPoint = (90 / 180.0) * np.pi
 #     # if i < 50:
 #     #     car.controlInput(np.matrix([-0.05, 50]))
 #     # else:

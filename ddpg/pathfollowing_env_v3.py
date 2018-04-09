@@ -74,7 +74,7 @@ class PathFollowingV3(gym.Env):
         self.u1_buffer = [0] * history_len
 
         # state
-        errorState, betaState = [0] * history_len, [float(self.car.q[3])] * history_len
+        errorState, betaState = [wheelx - 10] * history_len, [float(self.car.q[3])] * history_len
         u0State, u1State = [1] * history_len, [0] * history_len
 
         self.state = errorState + betaState + u0State + u1State
