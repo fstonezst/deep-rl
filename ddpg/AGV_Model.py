@@ -236,32 +236,52 @@ class AGV:
 
 
 # import matplotlib.pyplot as plt
-# car = AGV()
+# car = AGV(theta=np.pi * 0.5)
 # pathx, pathy = [], []
 # centerx, centery = [], []
 # B = []
 # for i in range(100):
+#     B.append(float(car.q[3]))
 #     pathx.append(car.q[0])
 #     pathy.append(car.q[1])
 #     centerx.append(car.wheelPos[0])
 #     centery.append(car.wheelPos[1])
 #     # car.control(np.matrix([[1], [2]]))
 #     # car.controlInput(np.matrix([5, 2000]))
-#     if i < 50:
-#         car.controlInput(np.matrix([-0.05, 50]))
+#     if i < 10:
+#         car.controlInput(np.matrix([0.02, 0]))
+#     elif i < 25:
+#         car.controlInput(np.matrix([-0.02, 0]))
 #     else:
-#         car.controlInput(np.matrix([-0.05, 70]))
-#     B.append(float(car.q[2]))
-#     print car.uk[0],car.q[3]
+#         car.controlInput(np.matrix([0.0, 0]))
+#
+#     print car.uk[0], car.q[3]
 #         # car.controlInput(np.matrix([0,0]))
 #
 # fig = plt.figure()
-# ax = fig.add_subplot(2,1,1)
-# ax1 = fig.add_subplot(2,1,2)
+# ax = fig.add_subplot(1, 1, 1)
+# # ax1 = fig.add_subplot(2, 1, 2)
 #
-# ax.plot(pathx,pathy,'r-o')
-# ax.plot(centerx,centery,'b-*')
-# ax1.plot(B,'b-*')
+# flag = True
+# flag = False
 #
+# if flag:
+#     ax.plot(pathx, pathy, 'r-o', label=u'追踪点轨迹')
+#     ax.plot(centerx, centery, 'b-*', label=u'主动轮轨迹')
+#     ax.set_xlabel("X/M")
+#     ax.set_ylabel("Y/M")
+#     ax.legend(loc='best')
+#     # ax.set_aspect(1)
+# else:
+#     ax.plot(B, 'b-*')
+#     ax.set_xlabel(u"时间/秒")
+#     ax.set_ylabel(u"角度/度")
+#     plt.yticks([x * 0.001 for x in range(1450, 1706, 17)], [int(x * 0.18 / np.pi) for x in range(1450, 1706, 17)])
+#     # plt.yticks([x * 0.001 for x in range(1550, 1806, 17)], [int(x * 0.018 / np.pi) for x in range(15500, 18266, 174)])
+#     plt.xticks(range(0, 110, 10), [x for x in range(0, 11)])
+#     ax.legend(loc='best')
+#
+# plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+# plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # plt.show()
 

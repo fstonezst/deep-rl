@@ -107,8 +107,8 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
 
         # saver = tf.train.Saver()
         saver.restore(sess, model)
-    else:
-        saver = tf.train.Saver()
+    # else:
+    saver = tf.train.Saver()
 
     # Initialize target network weights
     actor.update_target_network()
@@ -370,7 +370,7 @@ def train(sess, env, args, actor, critic, ae, finetune=False, model=None):
         saver.save(sess, 'model_0')
     writer.close()
 
-def predictWork(sess, model, env, args, actor):
+def predictWork(sess, model, env, args, actor, ae):
 
     saver = tf.train.Saver()
     sess.run(tf.global_variables_initializer())
@@ -384,8 +384,8 @@ def predictWork(sess, model, env, args, actor):
         for j in range(1, times):
             if args['render_env']:
                 env.render()
-
-            a = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            s = ae.encode(np.reshape(s, (1, actor.s_dim)))
+            a = actor.predict(s)
             s, r, terminal, info = env.step(a)
 
             if terminal:
@@ -430,7 +430,7 @@ def predictWork(sess, model, env, args, actor):
             for x in beta_record:
                 csv_writer.writerow([x])
 
-        if len > 0 and i % 1000 == 0:
+        if len > 0:
             ave_error = info.get("avgError")
             print(
                 # 'Reward: {:.4f} | Episode: {:d} | times:{:d} | max_r: {:.4f} | min_r: {:.4f}| max_s: {:.4f}| min_s: {:.4f}| ave_error: {:.4f} | ave_speed: {:.4f} | max_speed: {:.4f}'.format(
@@ -482,7 +482,7 @@ def main(args):
         if args['model'] == '':
             train(sess, env, args, actor, critic, ae)
         elif args['ft'] == 'False':
-            predictWork(sess, 'model_'+str(args['model']), env, args, actor)
+            predictWork(sess, 'model_'+str(args['model']), env, args, actor, ae)
         else:
             train(sess, env, args, actor, critic, ae, finetune=True, model='model_'+str(args['model']))
 

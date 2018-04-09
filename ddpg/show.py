@@ -75,16 +75,17 @@ class Drawer(object):
                     temp.append(line[0])
                 error_value.append(temp)
 
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-        for i, error in enumerate(error_value):
-            mylabel = 'epoch '+str(idlist[i])
-            ax.plot(error, self.lineColor[i], label=mylabel, lw=1)
-        ax.grid(True)
-        ax.set_xlabel("time(s)")
-        ax.set_ylabel("error(m)")
-        ax.legend(loc='best')
-        plt.show()
+        self.describe_data(error_value)
+        # fig = plt.figure()
+        # ax = fig.add_subplot(1,1,1)
+        # for i, error in enumerate(error_value):
+        #     mylabel = 'epoch '+str(idlist[i])
+        #     ax.plot(error, self.lineColor[i], label=mylabel, lw=1)
+        # ax.grid(True)
+        # ax.set_xlabel("time(s)")
+        # ax.set_ylabel("error(m)")
+        # ax.legend(loc='best')
+        # plt.show()
 
     def showOrientation(self, idlist):
         action_value = []
@@ -237,6 +238,19 @@ class Drawer(object):
         # plt.xticks(np.linspace(0,600,10))
         plt.show()
 
+    def describe_data(self, data):
+        import pandas as pd
+        res = list()
+        res.append(map(lambda x: max(map(lambda y: abs(float(y)), x)), data))
+        res.append(map(lambda x: np.mean(map(lambda y: float(y), x)), data))
+        res.append(map(lambda x: np.var(map(lambda y: float(y), x)), data))
+        df = pd.DataFrame(np.array(res).T, columns=['max', 'avg', 'var'])
+        print df
+        df.to_csv("error_res.csv")
+        # df2 = pd.DataFrame(np.array(data).T, columns=range(10), dtype=float)
+        # print df2.describe()
+
+
 
 
 
@@ -246,16 +260,16 @@ class Drawer(object):
 if __name__=="__main__":
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/final_csv/', [508, 530, 554]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/true_csv/', [508, 530, 554]
-    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [0]
-    path, modelNo = 'E:\experimentCode\deep-rl\ddpg//', [0, 1]
+    # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [1]
+    path, modelNo = '', range(10)
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/', [490] #, 233, 373]
     # path, modelNo = '/home/peter/PycharmProjects/deep-rl/ddpg/change_csv/', [508, 529, 550]
 
     draw = Drawer(path)
-    draw.showLoss(modelNo)
-    draw.showReward(modelNo)
+    # draw.showLoss(modelNo)
+    # draw.showReward(modelNo)
     # draw.showSpeed(modelNo)
-    # draw.showError(modelNo)
+    draw.showError(modelNo)
     # draw.showPath(modelNo)
     # draw.showBeta(modelNo)
     # draw.showRotation(modelNo)
